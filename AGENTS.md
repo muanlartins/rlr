@@ -11,7 +11,8 @@ the game's. Read `README.md` for what it does and the credits.
 - Small, focused commits; check before pushing anything (there is no remote yet,
   and creating one is Luan's call).
 - Never commit someone else's replays. `samples/` is for local testing and is
-  ignored; `public/samples` links to it so `?replay=samples/<file>` works in dev.
+  ignored. The dev server serves it from the project root, so
+  `./run.sh samples/<file>` (or `?replay=samples/<file>`) opens one directly.
 - Model sources are re-downloadable and ignored (`assets-src/`); the built models
   in `public/models` are committed. Credit any new model in the README.
 

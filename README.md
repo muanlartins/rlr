@@ -7,10 +7,10 @@ own camera, pause, step frame by frame, and draw on the frozen moment.
 ## Using it
 
 ```sh
-pnpm install
-pnpm dev
+./run.sh
 ```
 
+It installs what's missing, starts the dev server on port 5180 and opens it.
 Then drop a `.replay` file on the page, or open `?replay=<url>` to load one
 directly. Replays come from your game's `Demos` folder, or from
 [ballchasing.com](https://ballchasing.com) (log in to download).
