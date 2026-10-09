@@ -7,7 +7,7 @@ import { INKS, type Tool } from "../ui/sketch"
 import { EMPTY, encode, kickoff, newCar, poseOf, REST, type Board, type Piece } from "./model"
 import { Table, type Selection } from "./table"
 
-const SAVED = "board"
+const SAVED = "rlr:board"
 const DEGREES = 180 / Math.PI
 /** The free camera, the view from above, or behind a car (by id). */
 type View = "free" | "overhead" | { car: string }

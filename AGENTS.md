@@ -1,4 +1,4 @@
-# RepLay: notes for whoever works on this next
+# RLR (Rocket League Replay): notes for whoever works on this next
 
 A 3D Rocket League replay player. Luan uses it to record videos, talking over
 replays: free and player cameras, pause, frame steps and drawing matter;
@@ -8,8 +8,12 @@ the game's. Read `README.md` for what it does and the credits.
 
 ## Ground rules
 
-- Small, focused commits; check before pushing anything (there is no remote yet,
-  and creating one is Luan's call).
+- Small, focused commits; check before pushing anything. A push to `main`
+  publishes the site (`.github/workflows/pages.yml`, GitHub Pages at
+  muanlartins.github.io/rlr). The build uses relative paths (`base: "./"`), so it
+  works under any path; keep it that way.
+- Anything kept in the browser is namespaced `rlr:`: the site may also be served
+  from muanlartins.com.br/rlr, which shares its origin with Luan's site.
 - Never commit someone else's replays. `samples/` is for local testing and is
   ignored. The dev server serves it from the project root, so
   `./run.sh samples/<file>` (or `?replay=samples/<file>`) opens one directly.

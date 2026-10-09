@@ -71,8 +71,9 @@ export function App() {
     <main className="grid h-screen place-items-center bg-[#050a1a] text-[#f4f5f7]">
       <div className="text-center">
         <h1 className="text-4xl font-medium tracking-tight">
-          Rep<span className="text-[#85a7ff]">L</span>ay
+          R<span className="text-[#85a7ff]">L</span>R
         </h1>
+        <p className="mt-1 text-[13px] uppercase tracking-[0.2em] text-white/40">Rocket League Replay</p>
         <p className="mt-3 text-white/60">
           {state.status === "loading" ? `Reading ${state.name}…` : state.status === "error" ? state.message : "Drop a Rocket League .replay file anywhere, or"}
         </p>

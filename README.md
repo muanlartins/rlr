@@ -1,8 +1,11 @@
-# RepLay
+# RLR
 
-A 3D player for Rocket League replays, made for recording videos over them:
-drop in a `.replay` file and watch the match from anywhere, from any player's
-own camera, pause, step frame by frame, and draw on the frozen moment.
+Rocket League Replay: a 3D player for Rocket League replays, made for
+recording videos over them. Drop in a `.replay` file and watch the match from
+anywhere, from any player's own camera, pause, step frame by frame, and draw on
+the frozen moment.
+
+Online at [muanlartins.github.io/rlr](https://muanlartins.github.io/rlr/).
 
 ## Using it
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs RepLay locally with hot reload: save a file, the page updates.
+# Runs RLR locally with hot reload: save a file, the page updates.
 #   http://localhost:5180
 # ./run.sh samples/<file>.replay opens straight into that replay.
 # Ctrl+C stops it.
