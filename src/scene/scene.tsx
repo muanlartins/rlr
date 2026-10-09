@@ -1,17 +1,18 @@
 import { Environment, Lightformer } from "@react-three/drei"
 import { Canvas, useFrame } from "@react-three/fiber"
-import { Suspense } from "react"
+import { Suspense, type RefObject } from "react"
 import type { Playback } from "../playback"
 import type { Replay } from "../replay/model"
 import { Ball } from "./ball"
 import { Cameras, type View } from "./cameras"
 import { Car } from "./car"
+import { NameTags } from "./name-tags"
 import { Pads } from "./pads"
 import { Pitch } from "./pitch"
 import { Stadium } from "./stadium"
 
-/** The 3D view of a replay at the playhead. */
-export function Scene({ replay, playback, view }: { replay: Replay; playback: Playback; view: View }) {
+/** The 3D view of a replay at the playhead. `tags` are the players' name tags, drawn over it. */
+export function Scene({ replay, playback, view, tags }: { replay: Replay; playback: Playback; view: View; tags: RefObject<(HTMLElement | null)[]> }) {
   return (
     <Canvas
       shadows
@@ -41,6 +42,7 @@ export function Scene({ replay, playback, view }: { replay: Replay; playback: Pl
         ))}
       </Suspense>
       <Cameras view={view} replay={replay} playback={playback} />
+      <NameTags replay={replay} playback={playback} tags={tags} />
     </Canvas>
   )
 }

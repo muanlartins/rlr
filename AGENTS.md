@@ -59,8 +59,16 @@ the game's. Read `README.md` for what it does and the credits.
   "Their ball cam" replays what the player saw.
 - **subtr-actor's wasm** is loaded by explicit URL (`?url` import) and the package
   is excluded from Vite's dependency pre-bundling; don't undo either.
-- In dev, React's StrictMode makes drei's `<Html>` labels log "synchronously
-  unmount a root" errors. They're harmless and don't happen in a build.
+- **Name tags** are plain elements over the canvas that `scene/name-tags.tsx`
+  moves every frame. Not drei's `<Html>`: each of those is its own React root,
+  and StrictMode's double mount in dev left one car without its name.
+- **The game's phases.** After a goal the game is in a state of its own (the
+  ball is gone, the cars drive about) until the players are reset; then the
+  kickoff counts down while `replicated_game_state_time_remaining` is above 0.
+  The state is an index into the replay's names, so it differs between
+  replays: compare it, never hardcode it. While the game shows its own goal
+  replay nothing is recorded, a 1–7 s hole in `times` that playing skips
+  (`gaps`); `ui/announcer.tsx` shows the goal and the countdown.
 
 ## Checking a change
 

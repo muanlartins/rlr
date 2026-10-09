@@ -1,4 +1,4 @@
-import { Html, useGLTF } from "@react-three/drei"
+import { useGLTF } from "@react-three/drei"
 import { useFrame } from "@react-three/fiber"
 import { useMemo, useRef } from "react"
 import { AdditiveBlending, Box3, Group, Vector3, type Mesh, type MeshStandardMaterial, type Object3D } from "three"
@@ -28,13 +28,12 @@ const LOCK = 0.45
 const forward = new Vector3()
 const velocity = new Vector3()
 
-/** A player's car: its body painted in the team colour, wheels that roll and steer, a boost flame and a name. */
+/** A player's car: its body painted in the team colour, wheels that roll and steer, and a boost flame. */
 export function Car({ car, replay, playback }: { car: CarData; replay: Replay; playback: Playback }) {
   const { scene } = useGLTF(MODELS[car.body])
   const { model, wheels } = useMemo(() => build(scene, car.team), [scene, car.team])
   const root = useRef<Group>(null)
   const flame = useRef<Group>(null)
-  const label = useRef<HTMLDivElement>(null)
   const roll = useRef(0)
 
   useFrame((_, delta) => {
@@ -56,7 +55,6 @@ export function Car({ car, replay, playback }: { car: CarData; replay: Replay; p
       wheel.spin.rotation.z = roll.current
       if (wheel.front) wheel.steer.rotation.y = -car.steer[frame] * LOCK
     }
-    if (label.current) label.current.style.opacity = group.position.y > 30 ? "0" : "1"
   })
 
   return (
@@ -72,15 +70,6 @@ export function Car({ car, replay, playback }: { car: CarData; replay: Replay; p
           <meshBasicMaterial color="#fff1b8" transparent opacity={0.9} blending={AdditiveBlending} depthWrite={false} />
         </mesh>
       </group>
-      <Html position={[0, 1.1, 0]} center zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
-        <div
-          ref={label}
-          className="whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium text-white shadow transition-opacity"
-          style={{ background: `${TEAMS[car.team].color}cc` }}
-        >
-          {car.name}
-        </div>
-      </Html>
     </group>
   )
 }

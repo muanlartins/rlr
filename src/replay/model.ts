@@ -68,6 +68,14 @@ export interface Goal {
   team: 0 | 1
   scorer?: string
   score: [number, number]
+  /** When the players are put back for the next kickoff; until then the game celebrates the goal. */
+  reset: number
+}
+
+/** A kickoff: the 3, 2, 1 countdown, and when the cars are let go. */
+export interface Kickoff {
+  countdown: number
+  go: number
 }
 
 export interface Replay {
@@ -80,6 +88,7 @@ export interface Replay {
   ball: Track
   cars: Car[]
   goals: Goal[]
+  kickoffs: Kickoff[]
   demos: { time: number; attacker: string; victim: string }[]
   pads: Pad[]
 }

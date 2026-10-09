@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { Playback } from "./playback"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Playback, usePlayback } from "./playback"
 import { loadReplay } from "./replay/load"
-import type { Replay } from "./replay/model"
-import { momentAt } from "./replay/sample"
+import { BALL_CAM, type Car, type Replay } from "./replay/model"
+import { gaps, momentAt } from "./replay/sample"
 import type { View } from "./scene/cameras"
 import { TEAMS } from "./scene/field"
 import { Scene } from "./scene/scene"
+import { Announcer } from "./ui/announcer"
 import { Scoreboard } from "./ui/scoreboard"
 import { INKS, Sketch, type Stroke, type Tool } from "./ui/sketch"
 import { Timeline } from "./ui/timeline"
@@ -74,12 +75,13 @@ export function App() {
   )
 }
 
-const BALL_CAM = { theirs: "Their ball cam", on: "Ball cam", off: "Car cam" } as const
+const CAMS = { theirs: "As they played", on: "Ball cam", off: "Car cam" } as const
 
 function Player({ replay }: { replay: Replay }) {
-  const playback = useMemo(() => new Playback(replay.times[0], replay.times[replay.times.length - 1]), [replay])
+  const playback = useMemo(() => new Playback(replay.times[0], replay.times[replay.times.length - 1], gaps(replay.times)), [replay])
+  const tags = useRef<(HTMLElement | null)[]>([])
   const [view, setView] = useState<View>({ kind: "free" })
-  const [ballCam, setBallCam] = useState<keyof typeof BALL_CAM>("theirs")
+  const [ballCam, setBallCam] = useState<keyof typeof CAMS>("theirs")
   const [tool, setTool] = useState<Tool>()
   const [ink, setInk] = useState(INKS[1])
   const [strokes, setStrokes] = useState<Stroke[]>([])
@@ -129,7 +131,18 @@ function Player({ replay }: { replay: Replay }) {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-[#050a1a] text-[#f4f5f7]">
-      <Scene replay={replay} playback={playback} view={view} />
+      <Scene replay={replay} playback={playback} view={view} tags={tags} />
+      {replay.cars.map((car, index) => (
+        <span
+          key={car.id}
+          ref={(tag) => void (tags.current[index] = tag)}
+          className="pointer-events-none invisible absolute left-0 top-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium text-white shadow"
+          style={{ background: `${TEAMS[car.team].color}cc` }}
+        >
+          {car.name}
+        </span>
+      ))}
+      <Announcer replay={replay} playback={playback} />
       <Sketch tool={tool} color={ink} strokes={strokes} onChange={setStrokes} />
 
       <div className="pointer-events-none absolute inset-x-0 top-0 p-4">
@@ -150,8 +163,11 @@ function Player({ replay }: { replay: Replay }) {
           </Group>
           {view.kind === "player" && (
             <Group>
-              {(Object.keys(BALL_CAM) as (keyof typeof BALL_CAM)[]).map((mode) => (
-                <Choice key={mode} active={ballCam === mode} onClick={() => setBallCam(mode)}>{BALL_CAM[mode]}</Choice>
+              {(Object.keys(CAMS) as (keyof typeof CAMS)[]).map((mode) => (
+                <Choice key={mode} active={ballCam === mode} onClick={() => setBallCam(mode)}>
+                  {CAMS[mode]}
+                  {mode === "theirs" && <TheirCam car={replay.cars[view.car]} replay={replay} playback={playback} />}
+                </Choice>
               ))}
             </Group>
           )}
@@ -177,6 +193,13 @@ function Player({ replay }: { replay: Replay }) {
       </div>
     </main>
   )
+}
+
+/** Which camera the followed player had on at the playhead. */
+function TheirCam({ car, replay, playback }: { car: Car; replay: Replay; playback: Playback }) {
+  usePlayback(playback)
+  const { frame } = momentAt(replay.times, playback.time)
+  return <span className="ml-1.5 opacity-60">{car.flags[frame] & BALL_CAM ? "ball cam" : "car cam"}</span>
 }
 
 function Group({ children }: { children: React.ReactNode }) {

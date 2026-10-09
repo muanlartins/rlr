@@ -7,7 +7,7 @@ import init, { get_replay_frames_data } from "@rlrml/subtr-actor"
 import wasm from "@rlrml/subtr-actor/rl_replay_subtr_actor_bg.wasm?url"
 import {
   BALL_CAM, BOOSTING, buffers, DODGING, DOUBLE_JUMPING, JUMPING, SLIDING, UU,
-  type Body, type Car, type Goal, type Pad, type Replay, type Track,
+  type Body, type Car, type Goal, type Kickoff, type Pad, type Replay, type Track,
 } from "./model"
 
 interface Vec { x: number; y: number; z: number }
@@ -33,10 +33,11 @@ interface Parsed {
   frame_data: {
     ball_data: { frames: Frame<{ rigid_body: RigidBody }>[] }
     players: [object, { frames: Frame<PlayerState>[] }][]
-    metadata_frames: { time: number; seconds_remaining: number }[]
+    /** The game's state (an index into the replay's names) and its countdown, 3 while a kickoff counts down. */
+    metadata_frames: { time: number; seconds_remaining: number; replicated_game_state_name: number; replicated_game_state_time_remaining: number }[]
   }
   meta: { team_zero: PlayerInfo[]; team_one: PlayerInfo[]; all_headers: [string, unknown][] }
-  goal_events: { time: number; scoring_team_is_team_0: boolean; player: object | null; team_zero_score: number | null; team_one_score: number | null }[]
+  goal_events: { time: number; frame: number; scoring_team_is_team_0: boolean; player: object | null; team_zero_score: number | null; team_one_score: number | null }[]
   demolish_infos: { time: number; attacker: object; victim: object }[]
   boost_pads: { pad_id: string | null; size: "Big" | "Small"; position: Vec }[]
   boost_pad_events: { time: number; pad_id: string; kind: "Available" | { PickedUp: unknown } }[]
@@ -104,21 +105,32 @@ function convert(parsed: Parsed, file: string): Replay {
     return [car]
   })
 
-  const goals = parsed.goal_events.map((goal): Goal => ({
-    time: goal.time,
-    team: goal.scoring_team_is_team_0 ? 0 : 1,
-    scorer: goal.player ? names.get(key(goal.player)) : undefined,
-    score: [goal.team_zero_score ?? 0, goal.team_one_score ?? 0],
-  }))
+  // A goal puts the game in a state of its own until the players are reset;
+  // the ball is gone (exploded) for all of it.
+  const times = Float32Array.from(frames.metadata_frames, (frame) => frame.time)
+  const state = (frame: number) => frames.metadata_frames[frame].replicated_game_state_name
+  const goals = parsed.goal_events.map((goal): Goal => {
+    let reset = goal.frame
+    while (reset < count - 1 && state(reset + 1) === state(goal.frame)) reset++
+    ball.present.fill(0, goal.frame, reset + 1)
+    return {
+      time: goal.time,
+      team: goal.scoring_team_is_team_0 ? 0 : 1,
+      scorer: goal.player ? names.get(key(goal.player)) : undefined,
+      score: [goal.team_zero_score ?? 0, goal.team_one_score ?? 0],
+      reset: times[Math.min(reset + 1, count - 1)],
+    }
+  })
 
   return {
     name: String(header("ReplayName") ?? file),
     map: String(header("MapName") ?? ""),
-    times: Float32Array.from(frames.metadata_frames, (frame) => frame.time),
+    times,
     clock: Float32Array.from(frames.metadata_frames, (frame) => frame.seconds_remaining),
     ball,
     cars,
     goals,
+    kickoffs: kickoffs(frames.metadata_frames),
     demos: parsed.demolish_infos.map((demo) => ({ time: demo.time, attacker: names.get(key(demo.attacker)) ?? "", victim: names.get(key(demo.victim)) ?? "" })),
     pads: pads(parsed),
   }
@@ -147,6 +159,18 @@ function track(count: number, bodies: (RigidBody | undefined)[]): Track {
     if (v) vel.set([v.x * UU, v.z * UU, v.y * UU], i * 3)
   }
   return { pos, quat, vel, present }
+}
+
+/** The kickoffs: each run of frames where the game counts down. */
+function kickoffs(frames: Parsed["frame_data"]["metadata_frames"]): Kickoff[] {
+  const found: Kickoff[] = []
+  for (let i = 0; i < frames.length; i++) {
+    if (frames[i].replicated_game_state_time_remaining <= 0) continue
+    const countdown = frames[i].time
+    while (i < frames.length - 1 && frames[i + 1].replicated_game_state_time_remaining > 0) i++
+    found.push({ countdown, go: frames[Math.min(i + 1, frames.length - 1)].time })
+  }
+  return found
 }
 
 /** Each boost pad with the times it was taken and came back. */

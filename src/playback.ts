@@ -2,7 +2,8 @@ import { useSyncExternalStore } from "react"
 
 /**
  * The playhead. The scene reads `time` every frame without re-rendering;
- * React UI subscribes through `usePlayback`.
+ * React UI subscribes through `usePlayback`. Playing jumps over `gaps`, the
+ * stretches the recording has nothing for.
  */
 export class Playback {
   time: number
@@ -11,14 +12,15 @@ export class Playback {
   private listeners = new Set<() => void>()
   private version = 0
 
-  constructor(readonly start: number, readonly end: number) {
+  constructor(readonly start: number, readonly end: number, readonly gaps: [number, number][] = []) {
     this.time = start
   }
 
   /** Moves the playhead by the real seconds since the last frame. */
   advance(seconds: number) {
     if (!this.playing) return
-    this.seek(this.time + seconds * this.speed)
+    const time = this.time + seconds * this.speed
+    this.seek(this.gaps.find(([from, to]) => time > from && time < to)?.[1] ?? time)
     if (this.time >= this.end) this.set({ playing: false })
   }
 

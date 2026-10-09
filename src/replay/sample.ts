@@ -21,6 +21,16 @@ export function momentAt(times: Float32Array, time: number): Moment {
   return { frame: low, alpha: (time - times[low]) / (times[low + 1] - times[low]) }
 }
 
+/** Longer than this between two frames, nothing was recorded: the game was showing its goal replay. */
+const GAP = 0.5
+
+/** The stretches with no frames, as [last frame before, first frame after] times. */
+export function gaps(times: Float32Array) {
+  const found: [number, number][] = []
+  for (let i = 1; i < times.length; i++) if (times[i] - times[i - 1] > GAP) found.push([times[i - 1], times[i]])
+  return found
+}
+
 const q0 = new Quaternion()
 const q1 = new Quaternion()
 
