@@ -5,7 +5,9 @@ recording videos over them. Drop in a `.replay` file and watch the match from
 anywhere, from any player's own camera, pause, step frame by frame, and draw on
 the frozen moment.
 
-Online at [muanlartins.github.io/rlr](https://muanlartins.github.io/rlr/).
+Online at [muanlartins.com/rlr](https://muanlartins.com/rlr/) (also
+[muanlartins.com.br/rlr](https://muanlartins.com.br/rlr/) and
+[muanlartins.github.io/rlr](https://muanlartins.github.io/rlr/)).
 
 ## Using it
 

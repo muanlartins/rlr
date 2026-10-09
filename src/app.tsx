@@ -68,7 +68,7 @@ export function App() {
     return <Player key={state.replay.name} replay={state.replay} at={resume} onBoard={openBoard} />
   }
   return (
-    <main className="grid h-screen place-items-center bg-[#050a1a] text-[#f4f5f7]">
+    <main className="relative grid h-screen place-items-center bg-[#050a1a] text-[#f4f5f7]">
       <div className="text-center">
         <h1 className="text-4xl font-medium tracking-tight">
           R<span className="text-[#85a7ff]">L</span>R
@@ -97,9 +97,18 @@ export function App() {
           </div>
         )}
       </div>
+      <footer className="absolute inset-x-0 bottom-6 text-center text-[12px] text-white/40">
+        Created by{" "}
+        <a href={HOME} className="text-white/70 underline decoration-white/25 underline-offset-4 hover:text-[#85a7ff]">
+          muanlartins
+        </a>
+      </footer>
     </main>
   )
 }
+
+/** The author's site, in the language of the domain RLR is served from (English elsewhere). */
+const HOME = location.hostname.endsWith(".com.br") ? "https://muanlartins.com.br" : "https://muanlartins.com"
 
 const CAMS = { theirs: "As they played", on: "Ball cam", off: "Car cam" } as const
 

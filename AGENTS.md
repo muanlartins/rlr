@@ -10,7 +10,9 @@ the game's. Read `README.md` for what it does and the credits.
 
 - Small, focused commits; check before pushing anything. A push to `main`
   publishes the site (`.github/workflows/pages.yml`, GitHub Pages at
-  muanlartins.github.io/rlr). The build uses relative paths (`base: "./"`), so it
+  muanlartins.github.io/rlr). Luan's site's CloudFront also serves it at
+  muanlartins.com/rlr and muanlartins.com.br/rlr (`infra/site.yml` there),
+  picking it up within 10 minutes; nothing to do on AWS per release. The build uses relative paths (`base: "./"`), so it
   works under any path; keep it that way.
 - Anything kept in the browser is namespaced `rlr:`: the site may also be served
   from muanlartins.com.br/rlr, which shares its origin with Luan's site.
