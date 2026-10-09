@@ -24,8 +24,9 @@ the game's. Read `README.md` for what it does and the credits.
 | `src/replay/parse.worker.ts` | subtr-actor in a worker → `Replay` |
 | `src/replay/sample.ts` | Finding the frame for a time, and smoothing between frames |
 | `src/playback.ts` | The playhead (time, playing, speed); the scene reads it every frame without React |
-| `src/scene/*` | Pitch, stadium dressing, cars, ball, boost pads, cameras |
-| `src/ui/*` | Timeline, scoreboard, drawing |
+| `src/scene/*` | The arena (`arena.tsx`: lights, stadium, pitch), cars, ball, boost pads, cameras, name tags; shared by the player and the board |
+| `src/ui/*` | Timeline, scoreboard, announcer, drawing, shared buttons |
+| `src/board/*` | The tactics board: its model (pieces, pads, marks, the link format), the page, and what goes on the pitch |
 | `tools/models.mjs` | `pnpm models`: builds `public/models` from the sources |
 
 ## Conventions that bite
@@ -69,6 +70,22 @@ the game's. Read `README.md` for what it does and the credits.
   replays: compare it, never hardcode it. While the game shows its own goal
   replay nothing is recorded, a 1–7 s hole in `times` that playing skips
   (`gaps`); `ui/announcer.tsx` shows the goal and the countdown.
+
+## The board
+
+- A piece's `rot` is heading, nose and roll applied as a three.js Euler in
+  "YZX" order, because a car's own X is ahead. Heading 0 faces +x;
+  `headingTo` aims one at a point.
+- Boost pads are the standard layout (`PADS` in `scene/field.ts`, read off a
+  replay). A replay's own pads are matched to them by position.
+- Dragging follows the pointer on a plane (the floor at the piece's height,
+  or an upright one facing the camera with Shift) through window listeners,
+  with the orbit controls off meanwhile. Each piece has an unseen larger
+  sphere to grab, since a car is a few pixels wide from across the pitch.
+- The board lives in the URL hash (`#board=`, base64url JSON) and in
+  `localStorage`; a hash on load opens it.
+- Loaded models are shared between canvases: scale a group around one, never
+  the model itself, or measuring it again on the next mount compounds.
 
 ## Checking a change
 

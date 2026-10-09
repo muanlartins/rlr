@@ -1,40 +1,24 @@
-import { Environment, Lightformer } from "@react-three/drei"
-import { Canvas, useFrame } from "@react-three/fiber"
+import { useFrame } from "@react-three/fiber"
 import { Suspense, type RefObject } from "react"
+import { Quaternion } from "three"
 import type { Playback } from "../playback"
 import type { Replay } from "../replay/model"
+import { momentAt, poseAt } from "../replay/sample"
+import { Arena } from "./arena"
 import { Ball } from "./ball"
 import { Cameras, type View } from "./cameras"
 import { Car } from "./car"
 import { NameTags } from "./name-tags"
 import { Pads } from "./pads"
-import { Pitch } from "./pitch"
-import { Stadium } from "./stadium"
+
+const ignored = new Quaternion()
 
 /** The 3D view of a replay at the playhead. `tags` are the players' name tags, drawn over it. */
 export function Scene({ replay, playback, view, tags }: { replay: Replay; playback: Playback; view: View; tags: RefObject<(HTMLElement | null)[]> }) {
   return (
-    <Canvas
-      shadows
-      dpr={[1, 2]}
-      camera={{ position: [-58, 34, 0], fov: 60, near: 0.1, far: 2000 }}
-      gl={{ antialias: true, preserveDrawingBuffer: true }}
-    >
-      <color attach="background" args={["#050a1a"]} />
-      <fog attach="fog" args={["#050a1a", 180, 650]} />
-      <hemisphereLight args={["#c9d6ff", "#0b1430", 0.6]} />
-      <directionalLight position={[40, 80, 20]} intensity={1.6} castShadow shadow-mapSize={[2048, 2048]}>
-        <orthographicCamera attach="shadow-camera" args={[-70, 70, 70, -70, 1, 200]} />
-      </directionalLight>
-      <Environment resolution={256}>
-        <Lightformer form="rect" intensity={2} position={[0, 30, 0]} rotation-x={Math.PI / 2} scale={[80, 100, 1]} />
-        <Lightformer form="rect" color="#85a7ff" intensity={1.5} position={[-60, 10, 0]} rotation-y={Math.PI / 2} scale={[100, 10, 1]} />
-        <Lightformer form="rect" color="#ffb067" intensity={1} position={[60, 10, 0]} rotation-y={-Math.PI / 2} scale={[100, 10, 1]} />
-      </Environment>
+    <Arena>
       <Clock playback={playback} />
       <Suspense fallback={null}>
-        <Stadium />
-        <Pitch />
         <Pads replay={replay} playback={playback} />
         <Ball replay={replay} playback={playback} />
         {replay.cars.map((car) => (
@@ -42,8 +26,11 @@ export function Scene({ replay, playback, view, tags }: { replay: Replay; playba
         ))}
       </Suspense>
       <Cameras view={view} replay={replay} playback={playback} />
-      <NameTags replay={replay} playback={playback} tags={tags} />
-    </Canvas>
+      <NameTags
+        tags={tags}
+        place={(index, point) => poseAt(replay.cars[index], replay.times, momentAt(replay.times, playback.time), point, ignored)}
+      />
+    </Arena>
   )
 }
 

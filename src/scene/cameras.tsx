@@ -26,24 +26,50 @@ const up = new Vector3(0, 1, 0)
 
 /** Drives the camera for the chosen view. */
 export function Cameras({ view, replay, playback }: { view: View; replay: Replay; playback: Playback }) {
+  if (view.kind === "player") return <Follow view={view} replay={replay} playback={playback} />
+  return <Orbit overhead={view.kind === "overhead"} />
+}
+
+/**
+ * The free camera (drag to orbit, scroll to zoom) or, `overhead`, the view
+ * straight down. `still` stops dragging from moving it, for when the mouse
+ * is busy drawing.
+ */
+export function Orbit({ overhead, still }: { overhead: boolean; still?: boolean }) {
   const camera = useThree((state) => state.camera) as PerspectiveCamera
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null)
-  const aim = useRef(new Vector3())
 
   useEffect(() => {
-    if (view.kind === "overhead") {
+    if (overhead) {
       camera.position.set(0, 140, 0.01)
       camera.fov = 45
-    } else if (view.kind === "free") {
+    } else {
       camera.position.set(-58, 34, 0)
       camera.fov = 60
-      controls.current?.target.set(0, 0, 0)
     }
+    controls.current?.target.set(0, 0, 0)
     camera.updateProjectionMatrix()
-  }, [view, camera])
+  }, [overhead, camera])
+
+  return (
+    <OrbitControls
+      ref={controls}
+      makeDefault
+      enableRotate={!overhead && !still}
+      enablePan={!still}
+      target={[0, 0, 0]}
+      maxDistance={300}
+      minDistance={3}
+    />
+  )
+}
+
+/** Behind a player's car, with their camera settings. */
+function Follow({ view, replay, playback }: { view: Extract<View, { kind: "player" }>; replay: Replay; playback: Playback }) {
+  const camera = useThree((state) => state.camera) as PerspectiveCamera
+  const aim = useRef(new Vector3())
 
   useFrame((_, delta) => {
-    if (view.kind !== "player") return
     const player = replay.cars[view.car]
     const moment = momentAt(replay.times, playback.time)
     if (!poseAt(player, replay.times, moment, car, rotation)) return
@@ -74,15 +100,5 @@ export function Cameras({ view, replay, playback }: { view: View; replay: Replay
     }
   })
 
-  if (view.kind === "player") return null
-  return (
-    <OrbitControls
-      ref={controls}
-      makeDefault
-      enableRotate={view.kind === "free"}
-      target={[0, 0, 0]}
-      maxDistance={300}
-      minDistance={3}
-    />
-  )
+  return null
 }

@@ -20,7 +20,7 @@ const MODELS: Record<Body, string> = {
  */
 const LENGTH = 1.18
 const AHEAD = 0.1388
-const RIDE = 0.1701
+export const RIDE = 0.1701
 const WHEEL_RADIUS = 0.17
 /** How far the front wheels turn at full lock, in radians. */
 const LOCK = 0.45
@@ -30,8 +30,7 @@ const velocity = new Vector3()
 
 /** A player's car: its body painted in the team colour, wheels that roll and steer, and a boost flame. */
 export function Car({ car, replay, playback }: { car: CarData; replay: Replay; playback: Playback }) {
-  const { scene } = useGLTF(MODELS[car.body])
-  const { model, wheels } = useMemo(() => build(scene, car.team), [scene, car.team])
+  const { model, wheels } = useCarModel(car.body, car.team)
   const root = useRef<Group>(null)
   const flame = useRef<Group>(null)
   const roll = useRef(0)
@@ -72,6 +71,12 @@ export function Car({ car, replay, playback }: { car: CarData; replay: Replay; p
       </group>
     </group>
   )
+}
+
+/** A copy of a body's model of its own, painted for `team`, its wheels free to turn. */
+export function useCarModel(body: Body, team: 0 | 1) {
+  const { scene } = useGLTF(MODELS[body])
+  return useMemo(() => build(scene, team), [scene, team])
 }
 
 interface Wheel {

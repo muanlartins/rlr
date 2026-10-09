@@ -41,7 +41,10 @@ export function Ball({ replay, playback }: { replay: Replay; playback: Playback 
   return (
     <>
       <group ref={root}>
-        <primitive object={scene} scale={scale} />
+        {/* Scales a group, not the model: the loaded model is shared, so it must keep its own size to be measured again. */}
+        <group scale={scale}>
+          <primitive object={scene} />
+        </group>
       </group>
       <Line
         ref={trail}

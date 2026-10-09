@@ -29,6 +29,21 @@ directly. Replays come from your game's `Demos` folder, or from
 
 Drawings are for the paused moment: playing on clears them.
 
+## The board
+
+A tactics board on the same pitch, without a replay: "Open the board" on the
+start page, or "Open this moment on the board" while watching one to set out
+every car, the ball, their boost and the pads as they were.
+
+- Drag a car or the ball to move it; Shift-drag to raise or lower it.
+- Drag the dot in front of a selected car to turn it (or Q and E); its panel
+  sets the name, team, body, boost, height, heading, nose and roll.
+- Click a pad to mark it taken.
+- Pen, arrow and circle draw on the pitch itself, so they stay put as the
+  camera moves. Cmd/Ctrl-Z undoes.
+- The board is kept in the browser and in the page's link: "Copy link" shares
+  the setup.
+
 ## What's in a replay
 
 A `.replay` file is the game's own recording of what the server sent: every

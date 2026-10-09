@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { BoardPage, savedBoard } from "./board/board"
+import { decode, fromReplay, kickoff, type Board } from "./board/model"
 import { Playback, usePlayback } from "./playback"
 import { loadReplay } from "./replay/load"
 import { BALL_CAM, type Car, type Replay } from "./replay/model"
@@ -7,6 +9,7 @@ import type { View } from "./scene/cameras"
 import { TEAMS } from "./scene/field"
 import { Scene } from "./scene/scene"
 import { Announcer } from "./ui/announcer"
+import { Choice, Group } from "./ui/controls"
 import { Scoreboard } from "./ui/scoreboard"
 import { INKS, Sketch, type Stroke, type Tool } from "./ui/sketch"
 import { Timeline } from "./ui/timeline"
@@ -15,6 +18,10 @@ type State = { status: "empty" } | { status: "loading"; name: string } | { statu
 
 export function App() {
   const [state, setState] = useState<State>({ status: "empty" })
+  // A link to a board (#board=…) opens it.
+  const [board, setBoard] = useState<Board | undefined>(() => decode(location.hash.match(/^#board=(.+)$/)?.[1] ?? ""))
+  /** Where the replay was when the board was opened from it, to go back to. */
+  const [resume, setResume] = useState<number>()
 
   const open = useCallback(async (bytes: Promise<ArrayBuffer>, name: string) => {
     setState({ status: "loading", name })
@@ -46,7 +53,20 @@ export function App() {
     }
   }, [open])
 
-  if (state.status === "ready") return <Player key={state.replay.name} replay={state.replay} />
+  if (board) {
+    const close = () => {
+      history.replaceState(null, "", `${location.pathname}${location.search}`)
+      setBoard(undefined)
+    }
+    return <BoardPage initial={board} back={state.status === "ready" ? "Replay" : "Home"} onClose={close} />
+  }
+  if (state.status === "ready") {
+    const openBoard = (time: number) => {
+      setResume(time)
+      setBoard(fromReplay(state.replay, time))
+    }
+    return <Player key={state.replay.name} replay={state.replay} at={resume} onBoard={openBoard} />
+  }
   return (
     <main className="grid h-screen place-items-center bg-[#050a1a] text-[#f4f5f7]">
       <div className="text-center">
@@ -57,18 +77,23 @@ export function App() {
           {state.status === "loading" ? `Reading ${state.name}…` : state.status === "error" ? state.message : "Drop a Rocket League .replay file anywhere, or"}
         </p>
         {state.status !== "loading" && (
-          <label className="mt-5 inline-block cursor-pointer rounded-full bg-[#f4f5f7] px-5 py-2 font-medium text-[#002fa7]">
-            Choose a replay
-            <input
-              type="file"
-              accept=".replay"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0]
-                if (file) void open(file.arrayBuffer(), file.name)
-              }}
-            />
-          </label>
+          <div className="mt-5 flex items-center justify-center gap-3">
+            <label className="inline-block cursor-pointer rounded-full bg-[#f4f5f7] px-5 py-2 font-medium text-[#002fa7]">
+              Choose a replay
+              <input
+                type="file"
+                accept=".replay"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  if (file) void open(file.arrayBuffer(), file.name)
+                }}
+              />
+            </label>
+            <button onClick={() => setBoard(savedBoard() ?? kickoff(2))} className="rounded-full border border-white/25 px-5 py-2 font-medium text-[#f4f5f7] hover:bg-white/10">
+              Open the board
+            </button>
+          </div>
         )}
       </div>
     </main>
@@ -77,8 +102,13 @@ export function App() {
 
 const CAMS = { theirs: "As they played", on: "Ball cam", off: "Car cam" } as const
 
-function Player({ replay }: { replay: Replay }) {
-  const playback = useMemo(() => new Playback(replay.times[0], replay.times[replay.times.length - 1], gaps(replay.times)), [replay])
+/** Plays a replay; `at` starts it somewhere other than the beginning, and `onBoard` sets the moment out on the board. */
+function Player({ replay, at, onBoard }: { replay: Replay; at?: number; onBoard: (time: number) => void }) {
+  const playback = useMemo(() => {
+    const playback = new Playback(replay.times[0], replay.times[replay.times.length - 1], gaps(replay.times))
+    if (at !== undefined) playback.seek(at)
+    return playback
+  }, [replay, at])
   const tags = useRef<(HTMLElement | null)[]>([])
   const [view, setView] = useState<View>({ kind: "free" })
   const [ballCam, setBallCam] = useState<keyof typeof CAMS>("theirs")
@@ -188,6 +218,17 @@ function Player({ replay }: { replay: Replay }) {
             ))}
             <Choice active={false} onClick={() => setStrokes([])}>Clear</Choice>
           </Group>
+          <Group>
+            <Choice
+              active={false}
+              onClick={() => {
+                playback.set({ playing: false })
+                onBoard(playback.time)
+              }}
+            >
+              Open this moment on the board
+            </Choice>
+          </Group>
         </div>
         <Timeline replay={replay} playback={playback} />
       </div>
@@ -200,16 +241,4 @@ function TheirCam({ car, replay, playback }: { car: Car; replay: Replay; playbac
   usePlayback(playback)
   const { frame } = momentAt(replay.times, playback.time)
   return <span className="ml-1.5 opacity-60">{car.flags[frame] & BALL_CAM ? "ball cam" : "car cam"}</span>
-}
-
-function Group({ children }: { children: React.ReactNode }) {
-  return <div className="flex items-center overflow-hidden rounded-lg border border-white/10 bg-[#0b1430]/85 backdrop-blur">{children}</div>
-}
-
-function Choice({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick} className={active ? "flex items-center bg-white/90 px-2.5 py-1.5 text-[#002fa7]" : "flex items-center px-2.5 py-1.5 text-white/75 hover:bg-white/10"}>
-      {children}
-    </button>
-  )
 }
