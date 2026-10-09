@@ -93,11 +93,12 @@ const euler = new Euler(0, 0, 0, "YZX")
 /** A replay's moment set out on a board: every car where it was, the ball, the boost and the pads. */
 export function fromReplay(replay: Replay, time: number): Board {
   const moment = momentAt(replay.times, time)
-  const cars = replay.cars.flatMap((car): Piece[] => {
+  const cars = replay.cars.flatMap((car, index): Piece[] => {
     if (!poseAt(car, replay.times, moment, position, rotation)) return []
     euler.setFromQuaternion(rotation)
     return [{
-      id: car.id,
+      // Not the player's id: that's their platform account, and the board goes into links.
+      id: String(index),
       name: car.name,
       team: car.team,
       body: car.body,
