@@ -24,10 +24,25 @@ const goal = new Vector3()
 const look = new Vector3()
 const up = new Vector3(0, 1, 0)
 
+/**
+ * Where the followed car and the ball are, written into `car`, `rotation`
+ * and `ball` each frame, and how that car's camera is set: its settings (the
+ * game's default when missing) and whether ball cam is on. Nothing while the
+ * car isn't on the pitch.
+ */
+export type Track = (car: Vector3, rotation: Quaternion, ball: Vector3) => { settings?: CameraSettings; ballCam: boolean } | undefined
+
 /** Drives the camera for the chosen view. */
 export function Cameras({ view, replay, playback }: { view: View; replay: Replay; playback: Playback }) {
-  if (view.kind === "player") return <Follow view={view} replay={replay} playback={playback} />
-  return <Orbit overhead={view.kind === "overhead"} />
+  if (view.kind === "free" || view.kind === "overhead") return <Orbit overhead={view.kind === "overhead"} />
+  const player = replay.cars[view.car]
+  const track: Track = (car, rotation, ball) => {
+    const moment = momentAt(replay.times, playback.time)
+    if (!poseAt(player, replay.times, moment, car, rotation)) return undefined
+    poseAt(replay.ball, replay.times, moment, ball, spin)
+    return { settings: player.camera, ballCam: view.ballCam === "theirs" ? (player.flags[moment.frame] & BALL_CAM) !== 0 : view.ballCam === "on" }
+  }
+  return <Follow track={track} />
 }
 
 /**
@@ -64,18 +79,16 @@ export function Orbit({ overhead, still }: { overhead: boolean; still?: boolean 
   )
 }
 
-/** Behind a player's car, with their camera settings. */
-function Follow({ view, replay, playback }: { view: Extract<View, { kind: "player" }>; replay: Replay; playback: Playback }) {
+/** Behind a car, with its player's camera settings, like the game. */
+export function Follow({ track }: { track: Track }) {
   const camera = useThree((state) => state.camera) as PerspectiveCamera
   const aim = useRef(new Vector3())
 
   useFrame((_, delta) => {
-    const player = replay.cars[view.car]
-    const moment = momentAt(replay.times, playback.time)
-    if (!poseAt(player, replay.times, moment, car, rotation)) return
-    poseAt(replay.ball, replay.times, moment, ball, spin)
-    const settings = player.camera ?? DEFAULT_CAMERA
-    const ballCam = view.ballCam === "theirs" ? (player.flags[moment.frame] & BALL_CAM) !== 0 : view.ballCam === "on"
+    const followed = track(car, rotation, ball)
+    if (!followed) return
+    const settings = followed.settings ?? DEFAULT_CAMERA
+    const { ballCam } = followed
 
     // Ball cam looks from behind the car towards the ball; car cam along the car's heading.
     if (ballCam) ahead.subVectors(ball, car)

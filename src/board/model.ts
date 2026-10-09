@@ -4,7 +4,7 @@
  * at -z), like a replay's.
  */
 import { Euler, Quaternion, Vector3 } from "three"
-import type { Body, Replay } from "../replay/model"
+import type { Body, CameraSettings, Replay } from "../replay/model"
 import type { Tool } from "../ui/sketch"
 import { momentAt, poseAt } from "../replay/sample"
 import { RIDE } from "../scene/car"
@@ -23,6 +23,8 @@ export interface Piece {
   rot: [number, number, number]
   /** 0–100. */
   boost: number
+  /** The player's camera, for a car taken from a replay. */
+  camera?: CameraSettings
 }
 
 /** Something drawn on the pitch: its points as [x, z]. */
@@ -90,6 +92,13 @@ const position = new Vector3()
 const rotation = new Quaternion()
 const euler = new Euler(0, 0, 0, "YZX")
 
+/** Where a piece is and how it's turned, as three.js has them. */
+export function poseOf(piece: Piece, position: Vector3, rotation: Quaternion) {
+  const [heading, nose, roll] = piece.rot
+  position.fromArray(piece.pos)
+  rotation.setFromEuler(euler.set(roll, heading, nose))
+}
+
 /** A replay's moment set out on a board: every car where it was, the ball, the boost and the pads. */
 export function fromReplay(replay: Replay, time: number): Board {
   const moment = momentAt(replay.times, time)
@@ -105,6 +114,7 @@ export function fromReplay(replay: Replay, time: number): Board {
       pos: position.toArray(),
       rot: [euler.y, euler.z, euler.x],
       boost: Math.round(car.boost[moment.frame]),
+      camera: car.camera,
     }]
   })
   const ball: [number, number, number] = poseAt(replay.ball, replay.times, moment, position, rotation) ? position.toArray() : [0, REST.ball, 0]

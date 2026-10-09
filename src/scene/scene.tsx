@@ -28,7 +28,8 @@ export function Scene({ replay, playback, view, tags }: { replay: Replay; playba
       <Cameras view={view} replay={replay} playback={playback} />
       <NameTags
         tags={tags}
-        place={(index, point) => poseAt(replay.cars[index], replay.times, momentAt(replay.times, playback.time), point, ignored)}
+        // Like the game, no name over the car you're driving.
+        place={(index, point) => !(view.kind === "player" && view.car === index) && poseAt(replay.cars[index], replay.times, momentAt(replay.times, playback.time), point, ignored)}
       />
     </Arena>
   )

@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { Arena } from "../scene/arena"
-import { Orbit } from "../scene/cameras"
+import { Follow, Orbit, type Track } from "../scene/cameras"
 import { CEILING, TEAMS } from "../scene/field"
 import { Choice, Group } from "../ui/controls"
 import { INKS, type Tool } from "../ui/sketch"
-import { EMPTY, encode, kickoff, newCar, REST, type Board, type Piece } from "./model"
+import { EMPTY, encode, kickoff, newCar, poseOf, REST, type Board, type Piece } from "./model"
 import { Table, type Selection } from "./table"
 
 const SAVED = "board"
 const DEGREES = 180 / Math.PI
+/** The free camera, the view from above, or behind a car (by id). */
+type View = "free" | "overhead" | { car: string }
+
 /** How far Q and E turn a car. */
 const TURN = Math.PI / 12
 
@@ -33,7 +36,8 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
   const [selected, select] = useState<Selection>()
   const [tool, setTool] = useState<Tool>()
   const [ink, setInk] = useState(INKS[1])
-  const [overhead, setOverhead] = useState(false)
+  const [view, setView] = useState<View>("free")
+  const [ballCam, setBallCam] = useState(true)
   const [copied, setCopied] = useState(false)
   const tags = useRef<(HTMLElement | null)[]>([])
 
@@ -44,6 +48,14 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
     },
     [board],
   )
+  const followed = typeof view === "object" ? board.cars.find((car) => car.id === view.car) : undefined
+  const overhead = view === "overhead"
+  const track: Track = (at, rotation, ball) => {
+    if (!followed) return undefined
+    poseOf(followed, at, rotation)
+    ball.fromArray(board.ball)
+    return { settings: followed.camera, ballCam }
+  }
   const checkpoint = () => setUndo((steps) => [...steps.slice(-99), board])
   const car = board.cars.find((car) => car.id === selected)
   const update = (changes: Partial<Piece>) => car && setBoard({ ...board, cars: board.cars.map((other) => (other.id === car.id ? { ...other, ...changes } : other)) })
@@ -98,10 +110,11 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
         a: () => setTool((current) => (current === "arrow" ? undefined : "arrow")),
         c: () => setTool((current) => (current === "circle" ? undefined : "circle")),
         x: () => edit({ ...board, marks: [] }, true),
-        "0": () => setOverhead(false),
-        "9": () => setOverhead(true),
+        "0": () => setView("free"),
+        "9": () => setView("overhead"),
         Escape: () => (tool ? setTool(undefined) : select(undefined)),
       }
+      board.cars.forEach((car, index) => (keys[String(index + 1)] = () => setView({ car: car.id })))
       const action = keys[event.key]
       if (!action) return
       event.preventDefault()
@@ -114,8 +127,8 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-[#050a1a] text-[#f4f5f7]">
       <Arena onMissed={() => select(undefined)}>
-        <Orbit overhead={overhead} still={!!tool} />
-        <Table board={board} edit={edit} selected={selected} select={select} tool={tool} ink={ink} tags={tags} />
+        {followed ? <Follow track={track} /> : <Orbit overhead={overhead} still={!!tool} />}
+        <Table board={board} edit={edit} selected={selected} select={select} tool={tool} ink={ink} tags={tags} riding={followed?.id} />
       </Arena>
       {board.cars.map((car, index) => (
         <span
@@ -135,7 +148,7 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
         <button onClick={onClose} className="rounded-lg border border-white/10 bg-[#0b1430]/85 px-3 py-1.5 text-[12px] text-white/80 backdrop-blur hover:bg-white/10">
           ← {back}
         </button>
-        <span className="text-[13px] text-white/50">Drag to move · Shift-drag to raise · drag the dot to turn (or Q, E) · click a pad to take it</span>
+        <span className="text-[13px] text-white/50">Drag to move · Shift-drag to raise · drag the dot to turn (or Q, E) · click a pad to take it · 1, 2… to see from a car</span>
       </div>
 
       {car && (
@@ -194,9 +207,21 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
 
       <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center gap-2 p-4 text-[12px]">
         <Group>
-          <Choice active={!overhead} onClick={() => setOverhead(false)}>Free</Choice>
-          <Choice active={overhead} onClick={() => setOverhead(true)}>Overhead</Choice>
+          <Choice active={!followed && !overhead} onClick={() => setView("free")}>Free</Choice>
+          <Choice active={overhead} onClick={() => setView("overhead")}>Overhead</Choice>
+          {board.cars.map((car) => (
+            <Choice key={car.id} active={followed === car} onClick={() => setView({ car: car.id })}>
+              <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ background: TEAMS[car.team].color }} />
+              {car.name}
+            </Choice>
+          ))}
         </Group>
+        {followed && (
+          <Group>
+            <Choice active={ballCam} onClick={() => setBallCam(true)}>Ball cam</Choice>
+            <Choice active={!ballCam} onClick={() => setBallCam(false)}>Car cam</Choice>
+          </Group>
+        )}
         <Group>
           {([0, 1] as const).map((team) => (
             <Choice key={team} active={false} onClick={() => add(team)}>

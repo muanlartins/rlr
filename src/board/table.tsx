@@ -27,6 +27,8 @@ interface Props {
   tool?: Tool
   ink: string
   tags: RefObject<(HTMLElement | null)[]>
+  /** The car the camera follows, whose name isn't shown. */
+  riding?: string
 }
 
 const raycaster = new Raycaster()
@@ -41,7 +43,7 @@ function inside([x, y, z]: [number, number, number], rest: number): [number, num
 }
 
 /** What's on the board, in the arena: the pieces to drag, the pads to click, the marks, and the drawing surface. */
-export function Table({ board, edit, selected, select, tool, ink, tags }: Props) {
+export function Table({ board, edit, selected, select, tool, ink, tags, riding }: Props) {
   const { camera, gl, get } = useThree()
   const [drawing, setDrawing] = useState<Mark>()
 
@@ -147,7 +149,7 @@ export function Table({ board, edit, selected, select, tool, ink, tags }: Props)
         ))}
         <BallPiece at={board.ball} selected={selected === "ball"} onGrab={(event) => grab(event, "ball")} />
       </Suspense>
-      <NameTags tags={tags} place={(index, point) => !!board.cars[index] && !!point.fromArray(board.cars[index].pos)} />
+      <NameTags tags={tags} place={(index, point) => !!board.cars[index] && board.cars[index].id !== riding && !!point.fromArray(board.cars[index].pos)} />
     </>
   )
 }

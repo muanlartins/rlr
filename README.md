@@ -39,6 +39,9 @@ every car, the ball, their boost and the pads as they were.
 - Drag the dot in front of a selected car to turn it (or Q and E); its panel
   sets the name, team, body, boost, height, heading, nose and roll.
 - Click a pad to mark it taken.
+- A car's name in the toolbar (or 1, 2, …) shows the pitch from behind it,
+  with ball cam or car cam; a car from a replay keeps its player's camera
+  settings.
 - Pen, arrow and circle draw on the pitch itself, so they stay put as the
   camera moves. Cmd/Ctrl-Z undoes.
 - The board is kept in the browser and in the page's link: "Copy link" shares
