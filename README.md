@@ -41,8 +41,10 @@ start page, or "Open this moment on the board" while watching one to set out
 every car, the ball, their boost and the pads as they were.
 
 - Drag a car or the ball to move it; Shift-drag to raise or lower it.
-- Drag the dot in front of a selected car to turn it (or Q and E); its panel
-  sets the name, team, body, boost, height, heading, nose and roll.
+- A selected piece shows handles, as in a 3D editor: arrows move it along one
+  way (G; the green one is up) and, for a car, rings turn it about its own
+  axes (R; Q and E turn it too). Its panel sets the name, team and body, and
+  its boost on a dial like the game's.
 - Click a pad to mark it taken.
 - A car's name in the toolbar (or 1, 2, …) shows the pitch from behind it,
   with ball cam or car cam; a car from a replay keeps its player's camera

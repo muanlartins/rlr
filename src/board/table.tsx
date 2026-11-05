@@ -1,7 +1,7 @@
-import { Line, useGLTF } from "@react-three/drei"
+import { Line, TransformControls, useGLTF } from "@react-three/drei"
 import { useThree, type ThreeEvent } from "@react-three/fiber"
-import { Suspense, useMemo, useState, type RefObject } from "react"
-import { Box3, Euler, Plane, Raycaster, Shape, Vector2, Vector3 } from "three"
+import { Suspense, type ComponentRef, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react"
+import { Box3, Euler, Object3D, Plane, Raycaster, Shape, Vector2, Vector3 } from "three"
 import { useCarModel } from "../scene/car"
 import { BACK, BALL_RADIUS, CEILING, GOAL, PADS, SIDE } from "../scene/field"
 import { NameTags } from "../scene/name-tags"
@@ -10,13 +10,14 @@ import type { Tool } from "../ui/sketch"
 import { headingTo, REST, type Board, type Mark, type Piece } from "./model"
 
 const BALL_MODEL = `${import.meta.env.BASE_URL}models/ball.glb`
-/** How far ahead of a car's centre its turning handle sits. */
-const NOSE = 1.5
 /** Marks lie just above the floor and its markings. */
 const MARK_HEIGHT = 0.06
 const SELECTED = "#85a7ff"
+type Gizmo = ComponentRef<typeof TransformControls>
 
 export type Selection = string | "ball" | undefined
+/** What the handles on the selected piece do: arrows that move it, or rings that turn a car on its own axes. */
+export type Handles = "move" | "turn"
 
 interface Props {
   board: Board
@@ -29,6 +30,9 @@ interface Props {
   tags: RefObject<(HTMLElement | null)[]>
   /** The car the camera follows, whose name isn't shown. */
   riding?: string
+  handles: Handles
+  /** Set while a handle is held, so letting go over nothing doesn't drop the selection. */
+  holding: RefObject<boolean>
 }
 
 const raycaster = new Raycaster()
@@ -43,9 +47,10 @@ function inside([x, y, z]: [number, number, number], rest: number): [number, num
 }
 
 /** What's on the board, in the arena: the pieces to drag, the pads to click, the marks, and the drawing surface. */
-export function Table({ board, edit, selected, select, tool, ink, tags, riding }: Props) {
+export function Table({ board, edit, selected, select, tool, ink, tags, riding, handles, holding }: Props) {
   const { camera, gl, get } = useThree()
   const [drawing, setDrawing] = useState<Mark>()
+  const gizmo = useRef<Gizmo>(null)
 
   /** Follows the pointer across `plane` until it's let go, calling `move` with each point (`first` for the first). */
   const drag = (plane: Plane, move: (point: Vector3, first: boolean) => void, end?: () => void) => {
@@ -75,7 +80,8 @@ export function Table({ board, edit, selected, select, tool, ink, tags, riding }
    * up and down on an upright plane facing the camera.
    */
   const grab = (event: ThreeEvent<PointerEvent>, which: "ball" | Piece) => {
-    if (tool) return
+    // A handle under the pointer takes the press (the handles hear it after the pieces do).
+    if (tool || holding.current || (gizmo.current as unknown as { axis: string | null } | null)?.axis) return
     event.stopPropagation()
     select(which === "ball" ? "ball" : which.id)
     const start = which === "ball" ? board.ball : which.pos
@@ -88,16 +94,6 @@ export function Table({ board, edit, selected, select, tool, ink, tags, riding }
       const pos = inside(event.shiftKey ? [start[0], moved.y, start[2]] : [moved.x, start[1], moved.z], rest)
       if (which === "ball") edit({ ...board, ball: pos }, first)
       else edit({ ...board, cars: board.cars.map((car) => (car.id === which.id ? { ...car, pos } : car)) }, first)
-    })
-  }
-
-  /** Turns a car to face wherever its nose handle is dragged. */
-  const aim = (event: ThreeEvent<PointerEvent>, car: Piece) => {
-    if (tool) return
-    event.stopPropagation()
-    drag(new Plane(new Vector3(0, 1, 0), -car.pos[1]), (point, first) => {
-      const rot: Piece["rot"] = [headingTo(car.pos, point.x, point.z), car.rot[1], car.rot[2]]
-      edit({ ...board, cars: board.cars.map((other) => (other.id === car.id ? { ...other, rot } : other)) }, first)
     })
   }
 
@@ -145,10 +141,11 @@ export function Table({ board, edit, selected, select, tool, ink, tags, riding }
       ))}
       <Suspense fallback={null}>
         {board.cars.map((car) => (
-          <CarPiece key={car.id} car={car} selected={selected === car.id} onGrab={(event) => grab(event, car)} onAim={(event) => aim(event, car)} />
+          <CarPiece key={car.id} car={car} selected={selected === car.id} onGrab={(event) => grab(event, car)} />
         ))}
         <BallPiece at={board.ball} selected={selected === "ball"} onGrab={(event) => grab(event, "ball")} />
       </Suspense>
+      {!tool && selected && <Handles gizmo={gizmo} board={board} edit={edit} selected={selected} handles={handles} holding={holding} />}
       <NameTags tags={tags} place={(index, point) => !!board.cars[index] && board.cars[index].id !== riding && !!point.fromArray(board.cars[index].pos)} />
     </>
   )
@@ -156,11 +153,75 @@ export function Table({ board, edit, selected, select, tool, ink, tags, riding }
 
 const euler = new Euler(0, 0, 0, "YZX")
 
-function CarPiece({ car, selected, onGrab, onAim }: { car: Piece; selected: boolean; onGrab: (event: ThreeEvent<PointerEvent>) => void; onAim: (event: ThreeEvent<PointerEvent>) => void }) {
+/**
+ * Blender-style handles on the selected piece: arrows (and squares, for two
+ * axes at once) along the arena's own directions to move it, Y being up; or
+ * rings around a car's own axes to turn it: around its roof (heading), its
+ * side (nose up or down) and its length (roll). They hold an unseen stand-in
+ * that the board is read back from as it moves, kept inside the arena.
+ */
+function Handles({ gizmo, board, edit, selected, handles, holding }: Pick<Props, "board" | "edit" | "handles" | "holding"> & { selected: string; gizmo: RefObject<Gizmo | null> }) {
+  const [proxy] = useState(() => {
+    const object = new Object3D()
+    object.rotation.order = "YZX"
+    return object
+  })
+  const first = useRef(true)
+  const car = board.cars.find((other) => other.id === selected)
+  const ball = selected === "ball"
+
+  // The stand-in follows the piece, except while it's the one being moved.
+  useLayoutEffect(() => {
+    if (holding.current) return
+    if (car) {
+      proxy.position.fromArray(car.pos)
+      proxy.rotation.set(car.rot[2], car.rot[0], car.rot[1])
+    } else if (ball) {
+      proxy.position.fromArray(board.ball)
+      proxy.rotation.set(0, 0, 0)
+    }
+    proxy.updateMatrixWorld()
+  })
+
+  if (!car && !ball) return null
+  const turning = handles === "turn" && !!car
+  const change = () => {
+    const pos = inside(proxy.position.toArray() as [number, number, number], ball ? REST.ball : REST.car)
+    proxy.position.fromArray(pos)
+    if (ball) edit({ ...board, ball: pos }, first.current)
+    else {
+      const rot: Piece["rot"] = [proxy.rotation.y, proxy.rotation.z, proxy.rotation.x]
+      edit({ ...board, cars: board.cars.map((other) => (other.id === selected ? { ...other, pos, rot } : other)) }, first.current)
+    }
+    first.current = false
+  }
+  return (
+    <>
+      <primitive object={proxy} />
+      <TransformControls
+        ref={gizmo}
+        object={proxy}
+        mode={turning ? "rotate" : "translate"}
+        space={turning ? "local" : "world"}
+        size={0.9}
+        onMouseDown={() => {
+          holding.current = true
+          first.current = true
+        }}
+        onMouseUp={() => {
+          // The click that ends the drag comes after this; let it pass first.
+          setTimeout(() => (holding.current = false), 0)
+        }}
+        onObjectChange={change}
+      />
+    </>
+  )
+}
+
+function CarPiece({ car, selected, onGrab }: { car: Piece; selected: boolean; onGrab: (event: ThreeEvent<PointerEvent>) => void }) {
   const { model } = useCarModel(car.body, car.team)
   const [heading, nose, roll] = car.rot
   const rotation = useMemo(() => euler.set(roll, heading, nose).clone(), [heading, nose, roll])
-  const ahead: [number, number, number] = [Math.cos(heading) * NOSE, 0, -Math.sin(heading) * NOSE]
 
   return (
     <group position={car.pos}>
@@ -168,15 +229,6 @@ function CarPiece({ car, selected, onGrab, onAim }: { car: Piece; selected: bool
         <primitive object={model} />
         <Grip radius={1.5} />
       </group>
-      {selected && (
-        <>
-          <Line points={[[0, 0, 0], ahead]} color={SELECTED} lineWidth={2} />
-          <mesh position={ahead} onPointerDown={onAim} onClick={(event) => event.stopPropagation()}>
-            <sphereGeometry args={[0.22, 16, 12]} />
-            <meshBasicMaterial color={SELECTED} />
-          </mesh>
-        </>
-      )}
       <Footing y={car.pos[1]} rest={REST.car} radius={0.9} selected={selected} />
     </group>
   )

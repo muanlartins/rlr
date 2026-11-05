@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { Arena } from "../scene/arena"
 import { Follow, Orbit, type Track } from "../scene/cameras"
-import { CEILING, TEAMS } from "../scene/field"
+import { TEAMS } from "../scene/field"
+import { BoostGauge } from "../ui/boost"
 import { Choice, Group } from "../ui/controls"
 import { INKS, type Tool } from "../ui/sketch"
 import { EMPTY, encode, kickoff, newCar, poseOf, REST, type Board, type Piece } from "./model"
-import { Table, type Selection } from "./table"
+import { Table, type Handles, type Selection } from "./table"
 
 const SAVED = "rlr:board"
 const DEGREES = 180 / Math.PI
@@ -39,6 +40,8 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
   const [view, setView] = useState<View>("free")
   const [ballCam, setBallCam] = useState(true)
   const [copied, setCopied] = useState(false)
+  const [handles, setHandles] = useState<Handles>("move")
+  const holding = useRef(false)
   const tags = useRef<(HTMLElement | null)[]>([])
 
   const edit = useCallback(
@@ -104,6 +107,8 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
       const keys: Record<string, () => void> = {
         Delete: remove,
         Backspace: remove,
+        g: () => setHandles("move"),
+        r: () => setHandles("turn"),
         q: () => turn(TURN),
         e: () => turn(-TURN),
         p: () => setTool((current) => (current === "pen" ? undefined : "pen")),
@@ -126,9 +131,9 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-[#050a1a] text-[#f4f5f7]">
-      <Arena onMissed={() => select(undefined)}>
+      <Arena onMissed={() => holding.current || select(undefined)}>
         {followed ? <Follow track={track} /> : <Orbit overhead={overhead} still={!!tool} />}
-        <Table board={board} edit={edit} selected={selected} select={select} tool={tool} ink={ink} tags={tags} riding={followed?.id} />
+        <Table board={board} edit={edit} selected={selected} select={select} tool={tool} ink={ink} tags={tags} riding={followed?.id} handles={handles} holding={holding} />
       </Arena>
       {board.cars.map((car, index) => (
         <span
@@ -148,7 +153,7 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
         <button onClick={onClose} className="rounded-lg border border-white/10 bg-[#0b1430]/85 px-3 py-1.5 text-[12px] text-white/80 backdrop-blur hover:bg-white/10">
           ← {back}
         </button>
-        <span className="text-[13px] text-white/50">Drag to move · Shift-drag to raise · drag the dot to turn (or Q, E) · click a pad to take it · 1, 2… to see from a car</span>
+        <span className="text-[13px] text-white/50">Drag to move · arrows move along one way (G) · rings turn a car (R) · click a pad to take it · 1, 2… to see from a car</span>
       </div>
 
       {car && (
@@ -174,11 +179,23 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
               </Choice>
             ))}
           </Row>
-          <Slider label="Boost" value={car.boost} min={0} max={100} shown={`${Math.round(car.boost)}`} onStart={checkpoint} onChange={(boost) => update({ boost })} />
-          <Slider label="Height" value={car.pos[1]} min={REST.car} max={CEILING - REST.car} step={0.05} shown={`${(car.pos[1] - REST.car).toFixed(1)} m`} onStart={checkpoint} onChange={(y) => update({ pos: [car.pos[0], y, car.pos[2]] })} />
-          <Slider label="Heading" value={angle(car.rot[0])} min={-180} max={180} shown={`${Math.round(angle(car.rot[0]))}°`} onStart={checkpoint} onChange={(value) => update({ rot: [value / DEGREES, car.rot[1], car.rot[2]] })} />
-          <Slider label="Nose" value={car.rot[1] * DEGREES} min={-90} max={90} shown={`${Math.round(car.rot[1] * DEGREES)}°`} onStart={checkpoint} onChange={(value) => update({ rot: [car.rot[0], value / DEGREES, car.rot[2]] })} />
-          <Slider label="Roll" value={angle(car.rot[2])} min={-180} max={180} shown={`${Math.round(angle(car.rot[2]))}°`} onStart={checkpoint} onChange={(value) => update({ rot: [car.rot[0], car.rot[1], value / DEGREES] })} />
+          <div className="flex items-center gap-3">
+            <BoostGauge boost={car.boost} color={TEAMS[car.team].color} size={84} onStart={checkpoint} onChange={(boost) => update({ boost })} />
+            <dl className="grid flex-1 grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-white/60">
+              <dt>Height</dt>
+              <dd className="text-right font-mono tabular-nums text-white/85">{(car.pos[1] - REST.car).toFixed(1)} m</dd>
+              <dt>Heading</dt>
+              <dd className="text-right font-mono tabular-nums text-white/85">{Math.round(angle(car.rot[0]))}°</dd>
+              <dt>Nose</dt>
+              <dd className="text-right font-mono tabular-nums text-white/85">{Math.round(angle(car.rot[1]))}°</dd>
+              <dt>Roll</dt>
+              <dd className="text-right font-mono tabular-nums text-white/85">{Math.round(angle(car.rot[2]))}°</dd>
+            </dl>
+          </div>
+          <Row>
+            <Choice active={handles === "move"} onClick={() => setHandles("move")}>Move · G</Choice>
+            <Choice active={handles === "turn"} onClick={() => setHandles("turn")}>Turn · R</Choice>
+          </Row>
           <Row>
             <Choice active={false} onClick={() => update({ pos: [car.pos[0], REST.car, car.pos[2]], rot: [car.rot[0], 0, 0] })}>On its wheels</Choice>
             <Choice active={false} onClick={remove}>Remove</Choice>
@@ -187,17 +204,11 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
       )}
       {selected === "ball" && (
         <Panel>
-          <span className="text-[13px]">Ball</span>
-          <Slider
-            label="Height"
-            value={board.ball[1]}
-            min={REST.ball}
-            max={CEILING - REST.ball}
-            step={0.05}
-            shown={`${(board.ball[1] - REST.ball).toFixed(1)} m`}
-            onStart={checkpoint}
-            onChange={(y) => setBoard({ ...board, ball: [board.ball[0], y, board.ball[2]] })}
-          />
+          <span className="text-[13px]">Ball · drag the arrows, green is up</span>
+          <p className="flex justify-between text-white/60">
+            Height
+            <span className="font-mono tabular-nums text-white/85">{(board.ball[1] - REST.ball).toFixed(1)} m</span>
+          </p>
           <Row>
             <Choice active={false} onClick={() => edit({ ...board, ball: [board.ball[0], REST.ball, board.ball[2]] }, true)}>On the floor</Choice>
             <Choice active={false} onClick={() => edit({ ...board, ball: [0, REST.ball, 0] }, true)}>Centre</Choice>
@@ -294,16 +305,4 @@ function Panel({ children }: { children: ReactNode }) {
 
 function Row({ children }: { children: ReactNode }) {
   return <div className="flex overflow-hidden rounded-lg border border-white/10">{children}</div>
-}
-
-function Slider({ label, value, min, max, step = 1, shown, onStart, onChange }: { label: string; value: number; min: number; max: number; step?: number; shown: string; onStart: () => void; onChange: (value: number) => void }) {
-  return (
-    <label className="block">
-      <span className="flex justify-between text-white/60">
-        {label}
-        <span className="font-mono tabular-nums text-white/80">{shown}</span>
-      </span>
-      <input type="range" min={min} max={max} step={step} value={value} onPointerDown={onStart} onChange={(event) => onChange(Number(event.target.value))} className="w-full accent-[#85a7ff]" />
-    </label>
-  )
 }

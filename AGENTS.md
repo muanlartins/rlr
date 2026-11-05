@@ -88,6 +88,11 @@ the game's. Read `README.md` for what it does and the credits.
   or an upright one facing the camera with Shift) through window listeners,
   with the orbit controls off meanwhile. Each piece has an unseen larger
   sphere to grab, since a car is a few pixels wide from across the pitch.
+- The handles are drei's `TransformControls` on an unseen proxy (Euler order
+  "YZX", like `rot`), written back to the piece on each change; a whole drag
+  is one undo step. The handles hear a press after the pieces and the pitch
+  do, so `holding` (and the gizmo's `axis` under the pointer) keeps a press
+  on a handle from also grabbing a piece or clearing the selection.
 - The board lives in the URL hash (`#board=`, base64url JSON) and in
   `localStorage`; a hash on load opens it.
 - Loaded models are shared between canvases: scale a group around one, never
