@@ -81,6 +81,8 @@ export interface Kickoff {
 export interface Replay {
   name: string
   map: string
+  /** When the game saved it, as its header has it ("2026-11-05 14-22-37"; local time or UTC, depending on the save). */
+  date: string
   /** Seconds since the recording started, per frame. */
   times: Float32Array
   /** The match clock (seconds left), per frame. */

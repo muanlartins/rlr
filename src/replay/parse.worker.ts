@@ -125,6 +125,7 @@ function convert(parsed: Parsed, file: string): Replay {
   return {
     name: String(header("ReplayName") ?? file),
     map: String(header("MapName") ?? ""),
+    date: String(header("Date") ?? ""),
     times,
     clock: Float32Array.from(frames.metadata_frames, (frame) => frame.seconds_remaining),
     ball,

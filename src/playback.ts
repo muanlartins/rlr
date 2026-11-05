@@ -9,6 +9,14 @@ export class Playback {
   time: number
   playing = false
   speed = 1
+  /**
+   * While set, playing follows this clock (the studio's video) instead of
+   * counting real seconds: it answers the replay time to be at, or undefined
+   * to stay put.
+   */
+  driver?: () => number | undefined
+  /** Bumped by every `seek`, so a follower can tell a jump from playing on. */
+  jumps = 0
   private listeners = new Set<() => void>()
   private version = 0
 
@@ -19,12 +27,23 @@ export class Playback {
   /** Moves the playhead by the real seconds since the last frame. */
   advance(seconds: number) {
     if (!this.playing) return
+    if (this.driver) {
+      const time = this.driver()
+      if (time !== undefined && time !== this.time) this.follow(time)
+      return
+    }
     const time = this.time + seconds * this.speed
-    this.seek(this.gaps.find(([from, to]) => time > from && time < to)?.[1] ?? time)
+    this.follow(this.gaps.find(([from, to]) => time > from && time < to)?.[1] ?? time)
     if (this.time >= this.end) this.set({ playing: false })
   }
 
   seek(time: number) {
+    this.jumps++
+    this.follow(time)
+  }
+
+  /** Moves the playhead as playing does: not a jump. */
+  follow(time: number) {
     this.time = Math.min(this.end, Math.max(this.start, time))
     this.emit()
   }

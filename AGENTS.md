@@ -32,6 +32,7 @@ the game's. Read `README.md` for what it does and the credits.
 | `src/playback.ts` | The playhead (time, playing, speed); the scene reads it every frame without React |
 | `src/scene/*` | The arena (`arena.tsx`: lights, stadium, pitch), cars, ball, boost pads, cameras, name tags; shared by the player and the board |
 | `src/ui/*` | Timeline, scoreboard, announcer, drawing, shared buttons |
+| `src/studio/*` | The studio: the stream's recording in step with the replay, marks, OBS |
 | `src/board/*` | The tactics board: its model (pieces, pads, marks, the link format), the page, and what goes on the pitch |
 | `tools/models.mjs` | `pnpm models`: builds `public/models` from the sources |
 
@@ -97,6 +98,28 @@ the game's. Read `README.md` for what it does and the credits.
   `localStorage`; a hash on load opens it.
 - Loaded models are shared between canvases: scale a group around one, never
   the model itself, or measuring it again on the next mount compounds.
+
+## The studio
+
+- `src/studio/sync.ts` lines a replay up with the stream's recording from the
+  session the "Partidas" dock publishes in Luan's site repository
+  (`content/matches/<id>.json`: the recording's start; `<id>.events.json`:
+  each match's kickoffs and goals by wall clock), fetched from GitHub's API
+  without a token. While the ball is in play a replay's time runs with the
+  wall clock, but across each goal replay it loses about 2 s, so the replay is
+  cut at its gaps into runs, each with the offset of its own kickoff (checked
+  against the goals: off by ~0.03 s on 2026-11-05). Replay ids and the dock's
+  match ids differ, so the match is found by its kickoffs and goals.
+- The dock logs a second "goal" when the game's goal replay ends, with
+  `replay-end` at the same moment; skip those.
+- The video drives the playhead while it fills the screen (`Playback.driver`);
+  otherwise the replay drives and the video keeps up, re-seeking on jumps
+  (`Playback.jumps`) and when it drifts.
+- `src/studio/obs.ts` talks to obs-websocket v5 from the page:
+  `CreateRecordChapter` needs OBS 30.2+ and a Hybrid MP4 recording.
+- The headless test browser decodes no video at all (Format error even for
+  VP8); test the studio's logic with a stand-in clock on `HTMLMediaElement`
+  (`currentTime`, `paused`, `play`, `pause`) added by an init script.
 
 ## Checking a change
 

@@ -54,6 +54,28 @@ every car, the ball, their boost and the pads as they were.
 - The board is kept in the browser and in the page's link: "Copy link" shares
   the setup.
 
+## The studio
+
+For talking over a match you streamed: "Studio" in the player, then "Add the
+recording…" (or drop the video on the page). The recording and the replay play
+in step; V swaps which one fills the screen, and the other sits in the corner.
+
+- **Lining up.** A replay doesn't say when it was recorded closely enough, so
+  the studio reads the session the stream's match dock published (muanlartins'
+  [site repository](https://github.com/muanlartins/muanlartins/tree/main/content/matches)):
+  when the recording started and when each kickoff and goal happened. It finds
+  the match by its kickoffs and goals and lines up each stretch between goals
+  on its own, since a replay loses a couple of seconds across every goal
+  replay the game shows. Without a session it's lined up by hand; either way
+  the ±0.1 s and ±1 s buttons nudge it, kept for the whole session.
+- **A play.** I and O mark where it starts and ends, L loops it.
+- **Marks.** M marks a moment (also while OBS records: it becomes a chapter in
+  the recording, with Hybrid MP4). "Save marks" downloads them for the edit.
+- **OBS.** "Connect OBS" (Tools → WebSocket Server Settings for the password,
+  kept in this browser) starts and stops the recording from the page.
+- The dock's shots, saves and goals of the streamer show as yellow ticks on
+  the timeline; the recording's sound has full, low and off.
+
 ## What's in a replay
 
 A `.replay` file is the game's own recording of what the server sent: every

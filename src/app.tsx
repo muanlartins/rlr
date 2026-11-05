@@ -12,6 +12,7 @@ import { Announcer } from "./ui/announcer"
 import { Choice, Group } from "./ui/controls"
 import { BoostGauge } from "./ui/boost"
 import { Scoreboard } from "./ui/scoreboard"
+import { StudioBar, StudioVideo, useLineUp, useSync, type Screen } from "./studio/studio"
 import { INKS, Sketch, type Stroke, type Tool } from "./ui/sketch"
 import { Timeline } from "./ui/timeline"
 
@@ -23,6 +24,8 @@ export function App() {
   const [board, setBoard] = useState<Board | undefined>(() => decode(location.hash.match(/^#board=(.+)$/)?.[1] ?? ""))
   /** Where the replay was when the board was opened from it, to go back to. */
   const [resume, setResume] = useState<number>()
+  /** The stream's recording, for the studio; it stays while replays change. */
+  const [vod, setVod] = useState<File>()
 
   const open = useCallback(async (bytes: Promise<ArrayBuffer>, name: string) => {
     setState({ status: "loading", name })
@@ -43,7 +46,8 @@ export function App() {
     const onDrop = (event: DragEvent) => {
       event.preventDefault()
       const file = event.dataTransfer?.files[0]
-      if (file) void open(file.arrayBuffer(), file.name)
+      if (file && isVideo(file)) setVod(file)
+      else if (file) void open(file.arrayBuffer(), file.name)
     }
     const onDragOver = (event: DragEvent) => event.preventDefault()
     window.addEventListener("drop", onDrop)
@@ -66,7 +70,7 @@ export function App() {
       setResume(time)
       setBoard(fromReplay(state.replay, time))
     }
-    return <Player key={state.replay.name} replay={state.replay} at={resume} onBoard={openBoard} />
+    return <Player key={state.replay.name} replay={state.replay} at={resume} onBoard={openBoard} vod={vod} onVod={setVod} />
   }
   return (
     <main className="relative grid h-screen place-items-center bg-[#050a1a] text-[#f4f5f7]">
@@ -108,13 +112,18 @@ export function App() {
   )
 }
 
+const isVideo = (file: File) => file.type.startsWith("video/") || /\.(mp4|mkv|mov|webm)$/i.test(file.name)
+
 /** The author's site, in the language of the domain RLR is served from (English elsewhere). */
 const HOME = location.hostname.endsWith(".com.br") ? "https://muanlartins.com.br" : "https://muanlartins.com"
 
 const CAMS = { theirs: "As they played", on: "Ball cam", off: "Car cam" } as const
 
-/** Plays a replay; `at` starts it somewhere other than the beginning, and `onBoard` sets the moment out on the board. */
-function Player({ replay, at, onBoard }: { replay: Replay; at?: number; onBoard: (time: number) => void }) {
+/**
+ * Plays a replay; `at` starts it somewhere other than the beginning, and `onBoard` sets the moment out on the board.
+ * With the stream's recording (`vod`) it's the studio: both in step, swapping which one fills the screen.
+ */
+function Player({ replay, at, onBoard, vod, onVod }: { replay: Replay; at?: number; onBoard: (time: number) => void; vod?: File; onVod: (file: File) => void }) {
   const playback = useMemo(() => {
     const playback = new Playback(replay.times[0], replay.times[replay.times.length - 1], gaps(replay.times))
     if (at !== undefined) playback.seek(at)
@@ -126,6 +135,30 @@ function Player({ replay, at, onBoard }: { replay: Replay; at?: number; onBoard:
   const [tool, setTool] = useState<Tool>()
   const [ink, setInk] = useState(INKS[1])
   const [strokes, setStrokes] = useState<Stroke[]>([])
+  const [screen, setScreen] = useState<Screen>("3d")
+  const [range, setRange] = useState<[number, number]>()
+  const [loop, setLoop] = useState(false)
+  const [volume, setVolume] = useState(0.25)
+  const [studio, setStudio] = useState(() => {
+    try {
+      return localStorage.getItem("rlr:studio") === "open"
+    } catch {
+      return false
+    }
+  })
+  const openStudio = (open: boolean) => {
+    setStudio(open)
+    try {
+      localStorage.setItem("rlr:studio", open ? "open" : "closed")
+    } catch {
+      // Remembered for this visit only.
+    }
+  }
+  const lookup = useSync(replay, studio && Boolean(vod))
+  const { sync, nudge, setNudge } = useLineUp(replay, lookup)
+  const shown: Screen = studio && vod ? screen : "3d"
+  const swap = () => setScreen((current) => (current === "3d" ? "vod" : "3d"))
+  const ticks = useMemo(() => sync.events.filter((event) => event.by === "me").map((event) => ({ time: event.time, label: event.name ?? event.type })), [sync])
 
   // Drawings belong to the paused moment: playing on wipes them.
   useEffect(
@@ -137,6 +170,13 @@ function Player({ replay, at, onBoard }: { replay: Replay; at?: number; onBoard:
   )
 
   const follow = useCallback((car: number) => setView({ kind: "player", car, ballCam }), [ballCam])
+
+  // Once the studio knows the match, it sees it from Luan's car, as the recording does.
+  const matched = lookup?.status === "found"
+  useEffect(() => {
+    const own = replay.cars.findIndex((car) => /muanlartins/i.test(car.name))
+    if (matched && own >= 0) setView((current) => (current.kind === "free" ? { kind: "player", car: own, ballCam: "theirs" } : current))
+  }, [matched, replay])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -183,20 +223,43 @@ function Player({ replay, at, onBoard }: { replay: Replay; at?: number; onBoard:
           {car.name}
         </span>
       ))}
-      <Announcer replay={replay} playback={playback} />
+      {studio && vod && <StudioVideo vod={vod} sync={sync} nudge={nudge} playback={playback} screen={shown} onSwap={swap} volume={volume} />}
+      {shown === "3d" && <Announcer replay={replay} playback={playback} />}
       <Sketch tool={tool} color={ink} strokes={strokes} onChange={setStrokes} />
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 p-4">
-        <Scoreboard replay={replay} playback={playback} />
-      </div>
-
-      {view.kind === "player" && (
-        <div className="pointer-events-none absolute bottom-36 right-6">
-          <Gauge car={replay.cars[view.car]} replay={replay} playback={playback} />
+      {shown === "3d" && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 p-4">
+          <Scoreboard replay={replay} playback={playback} />
         </div>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 space-y-2 p-4">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 space-y-2 p-4 [&>*]:pointer-events-auto">
+        {shown === "3d" && view.kind === "player" && (
+          <div className="pointer-events-none! flex justify-end pr-2">
+            <Gauge car={replay.cars[view.car]} replay={replay} playback={playback} />
+          </div>
+        )}
+        {studio && (
+          <StudioBar
+            replay={replay}
+            playback={playback}
+            vod={vod}
+            onVod={onVod}
+            lookup={lookup}
+            sync={sync}
+            nudge={nudge}
+            onNudge={setNudge}
+            screen={shown}
+            onSwap={swap}
+            range={range}
+            onRange={setRange}
+            loop={loop}
+            onLoop={setLoop}
+            onClose={() => openStudio(false)}
+            volume={volume}
+            onVolume={setVolume}
+          />
+        )}
         <div className="flex flex-wrap items-center gap-2 text-[12px]">
           <Group>
             <Choice active={view.kind === "free"} onClick={() => setView({ kind: "free" })}>Free</Choice>
@@ -245,9 +308,14 @@ function Player({ replay, at, onBoard }: { replay: Replay; at?: number; onBoard:
             >
               Open this moment on the board
             </Choice>
+            {!studio && (
+              <Choice active={false} onClick={() => openStudio(true)}>
+                Studio
+              </Choice>
+            )}
           </Group>
         </div>
-        <Timeline replay={replay} playback={playback} />
+        <Timeline replay={replay} playback={playback} range={range} ticks={ticks} />
       </div>
     </main>
   )

@@ -5,8 +5,17 @@ import { TEAMS } from "../scene/field"
 
 const SPEEDS = [0.25, 0.5, 1, 2]
 
-/** Play, pause, speed, and a scrubber marked with the goals and demos. */
-export function Timeline({ replay, playback }: { replay: Replay; playback: Playback }) {
+/** A moment from outside the replay to show on the scrubber: the stream dock's shots, saves… */
+export interface Tick {
+  time: number
+  label: string
+}
+
+/**
+ * Play, pause, speed, and a scrubber marked with the goals and demos; in the
+ * studio also with the play being looked at (`range`) and Luan's own moments (`ticks`).
+ */
+export function Timeline({ replay, playback, range, ticks = [] }: { replay: Replay; playback: Playback; range?: [number, number]; ticks?: Tick[] }) {
   usePlayback(playback)
   const { start, end, time, playing, speed } = playback
   const at = (seconds: number) => `${((seconds - start) / (end - start)) * 100}%`
@@ -24,6 +33,21 @@ export function Timeline({ replay, playback }: { replay: Replay; playback: Playb
       <div className="relative h-9 flex-1">
         <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-white/15" />
         <div className="absolute left-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-[#85a7ff]" style={{ width: at(time) }} />
+        {range && (
+          <div
+            className="absolute top-1/2 h-3 -translate-y-1/2 rounded-sm border border-[#ffd166] bg-[#ffd166]/25"
+            style={{ left: at(range[0]), width: `calc(${at(range[1])} - ${at(range[0])})` }}
+          />
+        )}
+        {ticks.map((tick) => (
+          <button
+            key={`${tick.time}-${tick.label}`}
+            onClick={() => playback.seek(tick.time - 3)}
+            title={tick.label}
+            className="absolute bottom-0 z-10 h-3 w-1.5 -translate-x-1/2 rounded-full bg-[#ffd166] hover:scale-125"
+            style={{ left: at(tick.time) }}
+          />
+        ))}
         {replay.goals.map((goal) => (
           <button
             key={goal.time}
