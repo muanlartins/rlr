@@ -223,7 +223,7 @@ function Player({ replay, at, onBoard, vod, onVod }: { replay: Replay; at?: numb
           {car.name}
         </span>
       ))}
-      {studio && vod && <StudioVideo vod={vod} sync={sync} nudge={nudge} playback={playback} screen={shown} onSwap={swap} volume={volume} />}
+      {studio && vod && <StudioVideo key={`${vod.name}:${vod.lastModified}:${vod.size}`} vod={vod} sync={sync} nudge={nudge} playback={playback} screen={shown} onSwap={swap} volume={volume} />}
       {shown === "3d" && <Announcer replay={replay} playback={playback} />}
       <Sketch tool={tool} color={ink} strokes={strokes} onChange={setStrokes} />
 

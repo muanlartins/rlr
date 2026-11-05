@@ -67,6 +67,8 @@ export function StudioVideo({ vod, sync, nudge, playback, screen, onSwap, volume
   const src = useMemo(() => URL.createObjectURL(vod), [vod])
   useEffect(() => () => URL.revokeObjectURL(src), [src])
   const [held, setHeld] = useState(false)
+  /** The file went away under the page (moved or renamed after it was added). */
+  const [lost, setLost] = useState(false)
 
   useEffect(() => {
     const element = video.current
@@ -115,6 +117,7 @@ export function StudioVideo({ vod, sync, nudge, playback, screen, onSwap, volume
         src={src}
         playsInline
         preload="auto"
+        onError={() => setLost(true)}
         onClick={main ? undefined : onSwap}
         className={
           main
@@ -122,6 +125,11 @@ export function StudioVideo({ vod, sync, nudge, playback, screen, onSwap, volume
             : "absolute right-6 top-36 z-10 aspect-video w-72 cursor-pointer rounded-lg border border-white/20 bg-black object-contain shadow-xl hover:border-[#85a7ff]"
         }
       />
+      {lost && (
+        <div className="absolute left-1/2 top-20 z-20 -translate-x-1/2 rounded-lg bg-[#e5484d] px-4 py-2 text-[13px] text-white shadow">
+          Couldn't read {vod.name}: was it moved or renamed? Add the recording again.
+        </div>
+      )}
       {main && held && (
         <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-[#0b1430]/85 px-3 py-1 text-[12px] text-white/70">
           The game's goal replay: the 3D waits for the kickoff
@@ -220,7 +228,12 @@ export function StudioBar({
       <Group>
         <label className="cursor-pointer whitespace-nowrap px-2.5 py-1.5 text-white/75 hover:bg-white/10" title={vod?.name}>
           {vod ? "Recording ✓" : "Add the recording…"}
-          <input type="file" accept="video/*,.mkv" className="hidden" onChange={(event) => event.target.files?.[0] && onVod(event.target.files[0])} />
+          <input type="file" accept="video/*,.mkv" className="hidden" onChange={(event) => {
+              const file = event.target.files?.[0]
+              // Cleared, so choosing the same file again (after moving it) still counts.
+              event.target.value = ""
+              if (file) onVod(file)
+            }} />
         </label>
         {vod && (
           <Choice active={false} onClick={() => onVolume(VOLUMES[(VOLUMES.indexOf(volume) + 1) % VOLUMES.length])}>
