@@ -10,6 +10,7 @@ import { TEAMS } from "./scene/field"
 import { Scene } from "./scene/scene"
 import { Announcer } from "./ui/announcer"
 import { Choice, Group } from "./ui/controls"
+import { BoostGauge } from "./ui/boost"
 import { Scoreboard } from "./ui/scoreboard"
 import { INKS, Sketch, type Stroke, type Tool } from "./ui/sketch"
 import { Timeline } from "./ui/timeline"
@@ -189,6 +190,12 @@ function Player({ replay, at, onBoard }: { replay: Replay; at?: number; onBoard:
         <Scoreboard replay={replay} playback={playback} />
       </div>
 
+      {view.kind === "player" && (
+        <div className="pointer-events-none absolute bottom-36 right-6">
+          <Gauge car={replay.cars[view.car]} replay={replay} playback={playback} />
+        </div>
+      )}
+
       <div className="absolute inset-x-0 bottom-0 space-y-2 p-4">
         <div className="flex flex-wrap items-center gap-2 text-[12px]">
           <Group>
@@ -251,4 +258,12 @@ function TheirCam({ car, replay, playback }: { car: Car; replay: Replay; playbac
   usePlayback(playback)
   const { frame } = momentAt(replay.times, playback.time)
   return <span className="ml-1.5 opacity-60">{car.flags[frame] & BALL_CAM ? "ball cam" : "car cam"}</span>
+}
+
+/** The followed player's boost, as the game shows it, with their speed. */
+function Gauge({ car, replay, playback }: { car: Car; replay: Replay; playback: Playback }) {
+  usePlayback(playback)
+  const { frame } = momentAt(replay.times, playback.time)
+  const speed = Math.hypot(car.vel[frame * 3], car.vel[frame * 3 + 1], car.vel[frame * 3 + 2]) * 3.6
+  return <BoostGauge boost={car.boost[frame]} color={TEAMS[car.team].color} speed={car.present[frame] ? speed : undefined} />
 }
