@@ -61,7 +61,8 @@ recording…" (or drop the video on the page). The recording and the replay play
 in step; V swaps which one fills the screen, and the other sits in the corner.
 
 - **A lives folder.** "Open a lives folder…" on the first page takes the
-  folder the stream's after-live script fills (`Lives\<date>\<hh-mm-ss> Live.mp4`
+  folder the stream's after-live script fills (`Lives\<date>\<hh-mm-ss> Live.mp4`,
+  or `Jogo.mkv` once that is on YouTube,
   and `Replays\Partida NN - <result>.replay`) and lists each day's matches; one
   click opens the match with its replay, the day's recording and the studio,
   and ‹ › go to the day's other matches. Edge and Chrome remember the folder
