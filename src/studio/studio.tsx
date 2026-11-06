@@ -4,7 +4,7 @@ import type { Replay } from "../replay/model"
 import { Choice, Group } from "../ui/controls"
 import { clock } from "../ui/timeline"
 import { Obs, saveObs, savedObs, type Recording } from "./obs"
-import { byHand, findMatch, sessionsNear, toReplay, toVideo, type Sync } from "./sync"
+import { byHand, findMatch, forRecording, sessionsNear, toReplay, toVideo, type Sync } from "./sync"
 
 /**
  * The studio: the stream's recording beside the replay, kept in step, to
@@ -515,9 +515,15 @@ function useElapsed(recording?: Recording) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`
 }
 
-/** The studio's lining up: the session's when found, by hand otherwise; and the nudge, kept per session. */
-export function useLineUp(replay: Replay, lookup?: Lookup) {
-  const sync = useMemo(() => (lookup?.status === "found" ? lookup.sync : byHand(replay)), [lookup, replay])
+/**
+ * The studio's lining up: the session's when found (moved for a recording that started later, the game's own), by
+ * hand otherwise; and the nudge, kept per session.
+ */
+export function useLineUp(replay: Replay, lookup?: Lookup, vod?: File) {
+  const sync = useMemo(
+    () => (lookup?.status === "found" ? forRecording(lookup.sync, vod?.name ?? "") : byHand(replay)),
+    [lookup, replay, vod],
+  )
   const key = nudgeKey(sync, replay)
   const [nudges, setNudges] = useState<Record<string, number>>({})
   const nudge = nudges[key] ?? readNudge(key)

@@ -263,7 +263,7 @@ function Player({
   }
   const studioOn = studio || Boolean(short)
   const lookup = useSync(replay, studioOn && Boolean(vod))
-  const { sync, nudge, setNudge } = useLineUp(replay, lookup)
+  const { sync, nudge, setNudge } = useLineUp(replay, lookup, vod)
   const shown: Screen = studioOn && vod ? screen : "3d"
 
   // A short's play, once the studio knows the match: its stretch, looping, paused at its start.

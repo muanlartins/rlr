@@ -136,6 +136,26 @@ function line(replay: Replay, session: Session, index: number, recording: string
   return sync
 }
 
+/**
+ * The same lining up for a recording that started later than the session's: the game's own file (`hh-mm-ss
+ * Jogo.mp4`) only starts once the game is first on screen, a minute or more after OBS's recording. Its name says
+ * when, to the second (OBS names it as it opens it, a fraction of a second before the first frame, hence the half).
+ */
+export function forRecording(sync: Sync, name: string): Sync {
+  const named = name.match(/^(\d{2})-(\d{2})-(\d{2}) Jogo\./i)
+  if (!named || !sync.recording) return sync
+  const began = new Date(sync.recording)
+  const opened = new Date(began)
+  opened.setHours(+named[1], +named[2], +named[3], 500)
+  const later = (+opened - +began) / 1000
+  if (later <= 0 || later > 12 * 3600) return sync
+  return {
+    ...sync,
+    recording: opened.toISOString(),
+    runs: sync.runs.map((run) => ({ ...run, offset: run.offset - later })),
+  }
+}
+
 /** Without a session: one offset for the whole replay, set by hand (goal replays will drift it). */
 export function byHand(replay: Replay): Sync {
   return { runs: [{ from: replay.times[0], to: replay.times[replay.times.length - 1], offset: 0 }], error: NaN, events: [] }
