@@ -284,6 +284,8 @@ function Player({
   }, [play, lookup, sync, playback])
 
   const fullScreen = useFullScreen()
+  const controlsWanted = useControlsWanted(2500)
+  const [overControls, setOverControls] = useState(false)
   useEffect(() => {
     if (!short) return
     const before = document.title
@@ -459,6 +461,11 @@ function Player({
             Studio
           </Choice>
         )}
+        {studioOn && !short && !fullScreen && (
+          <Choice active={false} onClick={() => void document.documentElement.requestFullscreen()}>
+            Full screen
+          </Choice>
+        )}
       </Group>
     </div>
   )
@@ -487,10 +494,17 @@ function Player({
     )
   }
 
+  // A commented video is the whole screen, recorded as it is (OBS leaves the cursor out): in full screen the controls
+  // step aside unless the mouse is near them (the keys still work).
+  const clean = studioOn && fullScreen && !controlsWanted && !overControls
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-[#050a1a] text-[#f4f5f7]">
       {picture}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 space-y-2 p-4 [&>*]:pointer-events-auto">
+      <div
+        onPointerEnter={() => setOverControls(true)}
+        onPointerLeave={() => setOverControls(false)}
+        className={`pointer-events-none absolute inset-x-0 bottom-0 space-y-2 p-4 transition-opacity duration-300 [&>*]:pointer-events-auto ${clean ? "opacity-0" : ""}`}
+      >
         {gauge}
         {bar}
         {controls}
@@ -498,6 +512,29 @@ function Player({
       </div>
     </main>
   )
+}
+
+/**
+ * Whether the controls are wanted: the pointer moved near the bottom of the screen in the last `ms`. Moving it
+ * elsewhere (turning the 3D camera, drawing) doesn't bring them back.
+ */
+function useControlsWanted(ms: number) {
+  const [wanted, setWanted] = useState(true)
+  useEffect(() => {
+    let timer = setTimeout(() => setWanted(false), ms)
+    const moved = (event: PointerEvent) => {
+      if (event.clientY < window.innerHeight * 0.7) return
+      setWanted(true)
+      clearTimeout(timer)
+      timer = setTimeout(() => setWanted(false), ms)
+    }
+    window.addEventListener("pointermove", moved)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener("pointermove", moved)
+    }
+  }, [ms])
+  return wanted
 }
 
 /** Whether the page is full screen. */

@@ -60,6 +60,11 @@ For talking over a match you streamed: "Studio" in the player, then "Add the
 recording…" (or drop the video on the page). The recording and the replay play
 in step; V swaps which one fills the screen, and the other sits in the corner.
 
+- **Commented videos.** "Full screen", then "Record a video" switches OBS to its
+  "Vídeo" profile (never while live), which records the whole screen with Luan's
+  camera in a corner; the controls step aside unless the mouse is near the
+  bottom, so the keys (V, space, I/O, L, M) drive it. "Back to the live's OBS"
+  puts the live's profile back.
 - **Shorts.** "Shorts" beside a day in the lives list finds that day's best plays
   of Luan's (his goals, assists and saves, scored from the stream dock's events
   and from what he said in the live's transcript) and opens the first, looping.

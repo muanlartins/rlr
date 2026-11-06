@@ -131,7 +131,13 @@ the game's. Read `README.md` for what it does and the credits.
   OBS's Shorts profile (`brand/twitch/obs_shorts.py` in Luan's site's
   repository) captures 1:1 from the full-screen browser; keep the two in step.
   Recording switches OBS's profile and scene collection to "Shorts" and back
-  (`intoShorts`/`outOfShorts` in `studio.tsx`), refusing while it streams.
+  (`intoProfile`/`backToLive` in `studio.tsx`), refusing while it streams.
+- Commented videos: the normal studio's "Record a video" does the same with the
+  "Vídeo" profile (`obs_video.py`, 1920×1080: the whole screen, his camera at
+  the bottom left as on the lives). In full screen the controls fade unless the
+  pointer is in the bottom 30% of the screen (`useControlsWanted`), so turning
+  the 3D camera doesn't bring them into the recording; keep the studio's own
+  corner clear of the camera's.
 - `src/studio/obs.ts` talks to obs-websocket v5 from the page:
   `CreateRecordChapter` needs OBS 30.2+ and a Hybrid MP4 recording.
 - The headless test browser decodes no video at all (Format error even for
