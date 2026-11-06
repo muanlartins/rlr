@@ -139,14 +139,16 @@ function line(replay: Replay, session: Session, index: number, recording: string
 /**
  * The same lining up for a recording that started later than the session's: the game's own file (`hh-mm-ss
  * Jogo.mp4`) only starts once the game is first on screen, a minute or more after OBS's recording. Its name says
- * when, to the second (OBS names it as it opens it, a fraction of a second before the first frame, hence the half).
+ * when, to the second. Measured on 11-06 against the stream's game track: the file's second 0 was 1.1 s after its
+ * name's (0.7 s of that the name's own fraction), creeping 0.3 s later over the live as the game's file drops the
+ * frames the stream's repeats; so its name plus 0.9 s, and the nudge for the rest.
  */
 export function forRecording(sync: Sync, name: string): Sync {
   const named = name.match(/^(\d{2})-(\d{2})-(\d{2}) Jogo\./i)
   if (!named || !sync.recording) return sync
   const began = new Date(sync.recording)
   const opened = new Date(began)
-  opened.setHours(+named[1], +named[2], +named[3], 500)
+  opened.setHours(+named[1], +named[2], +named[3], 900)
   const later = (+opened - +began) / 1000
   if (later <= 0 || later > 12 * 3600) return sync
   return {
