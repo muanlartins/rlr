@@ -3,7 +3,7 @@
  *
  *     Videos\Lives\<date>\<hh-mm-ss> Live.mp4            the stream's recording, named for when it started
  *     Videos\Lives\<date>\<hh-mm-ss> Câmera.mkv          the webcam alone
- *     Videos\Lives\<date>\<hh-mm-ss> Jogo.mkv            the game alone, no camera or overlays
+ *     Videos\Lives\<date>\<hh-mm-ss> Jogo.mp4            the game alone, no camera or overlays
  *     Videos\Lives\<date>\Replays\Partida 02 - Vitória 5-4 (prorrogação).replay
  *
  * Picking `Lives` (or `Videos`, or one day's folder) once is enough: the folder is remembered in IndexedDB
@@ -28,7 +28,7 @@ export interface LiveMatch {
 
 export interface Live {
   date: string
-  /** The day's recordings (the stream's, or the game alone once the stream's is on YouTube), earliest first. */
+  /** The day's recordings (the game alone and the stream's), earliest first. */
   recordings: Found[]
   matches: LiveMatch[]
 }
@@ -38,14 +38,14 @@ const RECORDING = /^(\d{2})-(\d{2})-(\d{2}) (Live|Jogo)\.(mp4|mkv|mov)$/i
 const MATCH = /^Partida (\d+) - (.+)\.replay$/i
 
 /**
- * The day's recording that holds a match: the last one started before its replay was saved. The stream's (with
- * the crowd) when it's still on disk; the after-live cleanup deletes it once it's on YouTube, and then the game's
- * own, which starts with it.
+ * The day's recording that holds a match: the last one started before its replay was saved. The game's own (from
+ * 11-06 on), so Luan's camera goes on top of a commentary or a short only once; the stream's (camera, crowd and
+ * overlays baked in) for the days before it, while it's on disk.
  */
 export function recordingFor(live: Live, match: LiveMatch): Found | undefined {
   const streams = live.recordings.filter((recording) => / Live\./i.test(recording.name))
   const games = live.recordings.filter((recording) => / Jogo\./i.test(recording.name))
-  return latest(streams, live, match) ?? latest(games, live, match)
+  return latest(games, live, match) ?? latest(streams, live, match)
 }
 
 function latest(recordings: Found[], live: Live, match: LiveMatch): Found | undefined {
