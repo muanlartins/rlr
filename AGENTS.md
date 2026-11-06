@@ -115,6 +115,12 @@ the game's. Read `README.md` for what it does and the credits.
 - The video drives the playhead while it fills the screen (`Playback.driver`);
   otherwise the replay drives and the video keeps up, re-seeking on jumps
   (`Playback.jumps`) and when it drifts.
+- `src/studio/lives.ts` reads Luan's lives folder (the layout of `scripts/videos.py`
+  in his site's repository) through the File System Access API, keeping the
+  folder's handle in IndexedDB (`rlr:studio`); without the API, an
+  `<input webkitdirectory>`. A match's recording is the day's last one started
+  before its replay was saved. Test it with a stand-in `showDirectoryPicker`
+  whose handles fetch files from `samples/`.
 - `src/studio/obs.ts` talks to obs-websocket v5 from the page:
   `CreateRecordChapter` needs OBS 30.2+ and a Hybrid MP4 recording.
 - The headless test browser decodes no video at all (Format error even for

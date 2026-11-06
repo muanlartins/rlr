@@ -60,6 +60,12 @@ For talking over a match you streamed: "Studio" in the player, then "Add the
 recording…" (or drop the video on the page). The recording and the replay play
 in step; V swaps which one fills the screen, and the other sits in the corner.
 
+- **A lives folder.** "Open a lives folder…" on the first page takes the
+  folder the stream's after-live script fills (`Lives\<date>\<hh-mm-ss> Live.mp4`
+  and `Replays\Partida NN - <result>.replay`) and lists each day's matches; one
+  click opens the match with its replay, the day's recording and the studio,
+  and ‹ › go to the day's other matches. Edge and Chrome remember the folder
+  (a click a visit to allow reading it again); elsewhere it's picked each visit.
 - **Lining up.** A replay doesn't say when it was recorded closely enough, so
   the studio reads the session the stream's match dock published (muanlartins'
   [site repository](https://github.com/muanlartins/muanlartins/tree/main/content/matches)):

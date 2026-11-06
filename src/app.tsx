@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { BoardPage, savedBoard } from "./board/board"
 import { decode, fromReplay, kickoff, type Board } from "./board/model"
 import { Playback, usePlayback } from "./playback"
@@ -12,6 +12,8 @@ import { Announcer } from "./ui/announcer"
 import { Choice, Group } from "./ui/controls"
 import { BoostGauge } from "./ui/boost"
 import { Scoreboard } from "./ui/scoreboard"
+import { LibraryButtons, LibraryList, MatchPicker, type Library } from "./studio/library"
+import { recordingFor, type Live, type LiveMatch } from "./studio/lives"
 import { StudioBar, StudioVideo, useLineUp, useSync, type Screen } from "./studio/studio"
 import { INKS, Sketch, type Stroke, type Tool } from "./ui/sketch"
 import { Timeline } from "./ui/timeline"
@@ -26,6 +28,9 @@ export function App() {
   const [resume, setResume] = useState<number>()
   /** The stream's recording, for the studio; it stays while replays change. */
   const [vod, setVod] = useState<File>()
+  /** Luan's lives folder, once opened, and the match from it that's playing. */
+  const [library, setLibrary] = useState<Library>()
+  const [current, setCurrent] = useState<{ live: Live; match: LiveMatch }>()
 
   const open = useCallback(async (bytes: Promise<ArrayBuffer>, name: string) => {
     setState({ status: "loading", name })
@@ -35,6 +40,28 @@ export function App() {
       setState({ status: "error", message: String(error) })
     }
   }, [])
+
+  /** A match from the lives folder: its replay, the day's recording that holds it, and the studio open. */
+  const openMatch = useCallback(
+    (live: Live, match: LiveMatch) => {
+      setCurrent({ live, match })
+      try {
+        localStorage.setItem("rlr:studio", "open")
+      } catch {
+        // The studio button still opens it.
+      }
+      const recording = recordingFor(live, match)
+      if (recording) {
+        void recording.file().then(
+          // The same recording keeps playing where it is, without loading again.
+          (file) => setVod((shown) => (shown && shown.name === file.name && shown.size === file.size && shown.lastModified === file.lastModified ? shown : file)),
+          () => undefined,
+        )
+      }
+      void open(match.replay.file().then((file) => file.arrayBuffer()), match.replay.name)
+    },
+    [open],
+  )
 
   // ?replay=<url> opens a replay straight away.
   useEffect(() => {
@@ -47,7 +74,10 @@ export function App() {
       event.preventDefault()
       const file = event.dataTransfer?.files[0]
       if (file && isVideo(file)) setVod(file)
-      else if (file) void open(file.arrayBuffer(), file.name)
+      else if (file) {
+        setCurrent(undefined)
+        void open(file.arrayBuffer(), file.name)
+      }
     }
     const onDragOver = (event: DragEvent) => event.preventDefault()
     window.addEventListener("drop", onDrop)
@@ -70,11 +100,12 @@ export function App() {
       setResume(time)
       setBoard(fromReplay(state.replay, time))
     }
-    return <Player key={state.replay.name} replay={state.replay} at={resume} onBoard={openBoard} vod={vod} onVod={setVod} />
+    const picker = current && <MatchPicker live={current.live} match={current.match} onOpen={openMatch} onList={() => setState({ status: "empty" })} />
+    return <Player key={state.replay.name} replay={state.replay} at={resume} onBoard={openBoard} vod={vod} onVod={setVod} picker={picker} />
   }
   return (
     <main className="relative grid h-screen place-items-center bg-[#050a1a] text-[#f4f5f7]">
-      <div className="text-center">
+      <div className="w-full text-center">
         <h1 className="text-4xl font-medium tracking-tight">
           R<span className="text-[#85a7ff]">L</span>R
         </h1>
@@ -92,7 +123,10 @@ export function App() {
                 className="hidden"
                 onChange={(event) => {
                   const file = event.target.files?.[0]
-                  if (file) void open(file.arrayBuffer(), file.name)
+                  if (file) {
+                    setCurrent(undefined)
+                    void open(file.arrayBuffer(), file.name)
+                  }
                 }}
               />
             </label>
@@ -101,6 +135,14 @@ export function App() {
             </button>
           </div>
         )}
+        {state.status !== "loading" &&
+          (library ? (
+            <div className="mt-10">
+              <LibraryList library={library} current={current && { date: current.live.date, number: current.match.number }} onOpen={openMatch} onClose={() => setLibrary(undefined)} />
+            </div>
+          ) : (
+            <LibraryButtons onLibrary={setLibrary} />
+          ))}
       </div>
       <footer className="absolute inset-x-0 bottom-6 text-center text-[12px] text-white/40">
         Created by{" "}
@@ -123,7 +165,7 @@ const CAMS = { theirs: "As they played", on: "Ball cam", off: "Car cam" } as con
  * Plays a replay; `at` starts it somewhere other than the beginning, and `onBoard` sets the moment out on the board.
  * With the stream's recording (`vod`) it's the studio: both in step, swapping which one fills the screen.
  */
-function Player({ replay, at, onBoard, vod, onVod }: { replay: Replay; at?: number; onBoard: (time: number) => void; vod?: File; onVod: (file: File) => void }) {
+function Player({ replay, at, onBoard, vod, onVod, picker }: { replay: Replay; at?: number; onBoard: (time: number) => void; vod?: File; onVod: (file: File) => void; picker?: ReactNode }) {
   const playback = useMemo(() => {
     const playback = new Playback(replay.times[0], replay.times[replay.times.length - 1], gaps(replay.times))
     if (at !== undefined) playback.seek(at)
@@ -261,6 +303,7 @@ function Player({ replay, at, onBoard, vod, onVod }: { replay: Replay; at?: numb
           />
         )}
         <div className="flex flex-wrap items-center gap-2 text-[12px]">
+          {picker}
           <Group>
             <Choice active={view.kind === "free"} onClick={() => setView({ kind: "free" })}>Free</Choice>
             <Choice active={view.kind === "overhead"} onClick={() => setView({ kind: "overhead" })}>Overhead</Choice>
