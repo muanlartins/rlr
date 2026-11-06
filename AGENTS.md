@@ -121,6 +121,17 @@ the game's. Read `README.md` for what it does and the credits.
   `<input webkitdirectory>`. A match's recording is the day's last one started
   before its replay was saved. Test it with a stand-in `showDirectoryPicker`
   whose handles fetch files from `samples/`.
+- `src/studio/plays.ts` finds a live's plays worth a short, deterministically:
+  points from the dock's events (Luan's goals with km/h and the game's stats,
+  assists, saves) and excited lines in the live's transcript, fetched from the
+  site's repository. A play is in the dock's seconds from the match's start;
+  the player maps it to replay time with the sync once the match is found.
+- Short mode (`short` in `Player`): the picture is a fixed 1080×1056 box of
+  screen pixels (`STAGE`, divided by `devicePixelRatio`) at the top left, which
+  OBS's Shorts profile (`brand/twitch/obs_shorts.py` in Luan's site's
+  repository) captures 1:1 from the full-screen browser; keep the two in step.
+  Recording switches OBS's profile and scene collection to "Shorts" and back
+  (`intoShorts`/`outOfShorts` in `studio.tsx`), refusing while it streams.
 - `src/studio/obs.ts` talks to obs-websocket v5 from the page:
   `CreateRecordChapter` needs OBS 30.2+ and a Hybrid MP4 recording.
 - The headless test browser decodes no video at all (Format error even for

@@ -60,6 +60,13 @@ For talking over a match you streamed: "Studio" in the player, then "Add the
 recording…" (or drop the video on the page). The recording and the replay play
 in step; V swaps which one fills the screen, and the other sits in the corner.
 
+- **Shorts.** "Shorts" beside a day in the lives list finds that day's best plays
+  of Luan's (his goals, assists and saves, scored from the stream dock's events
+  and from what he said in the live's transcript) and opens the first, looping.
+  The picture sits in the screen's top left corner, 1080×1056 screen pixels,
+  for OBS's "Shorts" profile to put over his camera in a 1080×1920 short; the
+  list and the controls are beside it. "Record a short" switches OBS to that
+  profile (never while live) and names a chapter after each play recorded.
 - **A lives folder.** "Open a lives folder…" on the first page takes the
   folder the stream's after-live script fills (`Lives\<date>\<hh-mm-ss> Jogo.mp4`,
   the game alone, or `Live.mp4` on days before it had one,

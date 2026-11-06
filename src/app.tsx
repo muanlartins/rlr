@@ -12,9 +12,11 @@ import { Announcer } from "./ui/announcer"
 import { Choice, Group } from "./ui/controls"
 import { BoostGauge } from "./ui/boost"
 import { Scoreboard } from "./ui/scoreboard"
-import { LibraryButtons, LibraryList, MatchPicker, type Library } from "./studio/library"
+import { LibraryButtons, LibraryList, MatchPicker, PlayList, playName, playsOf, type Library } from "./studio/library"
 import { recordingFor, type Live, type LiveMatch } from "./studio/lives"
+import type { Play } from "./studio/plays"
 import { StudioBar, StudioVideo, useLineUp, useSync, type Screen } from "./studio/studio"
+import { toReplay } from "./studio/sync"
 import { INKS, Sketch, type Stroke, type Tool } from "./ui/sketch"
 import { Timeline } from "./ui/timeline"
 
@@ -31,6 +33,9 @@ export function App() {
   /** Luan's lives folder, once opened, and the match from it that's playing. */
   const [library, setLibrary] = useState<Library>()
   const [current, setCurrent] = useState<{ live: Live; match: LiveMatch }>()
+  /** Recording shorts: the day's plays, best first, and the one on screen. */
+  const [short, setShort] = useState<{ live: Live; plays: Play[]; play: Play }>()
+  const [finding, setFinding] = useState<string>()
 
   const open = useCallback(async (bytes: Promise<ArrayBuffer>, name: string) => {
     setState({ status: "loading", name })
@@ -62,6 +67,24 @@ export function App() {
     },
     [open],
   )
+
+  /** A play for a short: its match opens (unless it's the one already open), lined up on the play. */
+  const openPlay = (live: Live, plays: Play[], play: Play) => {
+    setShort({ live, plays, play })
+    const match = live.matches.find((each) => each.number === play.number)
+    const open = state.status === "ready" && current?.live.date === live.date && current.match.number === play.number
+    if (match && !open) openMatch(live, match)
+  }
+  const shorts = (live: Live) => {
+    setFinding(`Finding the plays of ${live.date}…`)
+    playsOf(live).then(
+      (plays) => {
+        setFinding(plays.length ? undefined : `No plays of yours found in ${live.date}'s published session.`)
+        if (plays.length) openPlay(live, plays, plays[0])
+      },
+      (error) => setFinding(`Couldn't read the session (${error})`),
+    )
+  }
 
   // ?replay=<url> opens a replay straight away.
   useEffect(() => {
@@ -101,7 +124,19 @@ export function App() {
       setBoard(fromReplay(state.replay, time))
     }
     const picker = current && <MatchPicker live={current.live} match={current.match} onOpen={openMatch} onList={() => setState({ status: "empty" })} />
-    return <Player key={state.replay.name} replay={state.replay} at={resume} onBoard={openBoard} vod={vod} onVod={setVod} picker={picker} />
+    const shortProps = short && {
+      play: short.play,
+      list: (
+        <PlayList
+          live={short.live}
+          plays={short.plays}
+          play={short.play}
+          onPlay={(play) => openPlay(short.live, short.plays, play)}
+          onLeave={() => (setShort(undefined), setState({ status: "empty" }))}
+        />
+      ),
+    }
+    return <Player key={state.replay.name} replay={state.replay} at={resume} onBoard={openBoard} vod={vod} onVod={setVod} picker={short ? undefined : picker} short={shortProps} />
   }
   return (
     <main className="relative grid h-screen place-items-center bg-[#050a1a] text-[#f4f5f7]">
@@ -138,7 +173,14 @@ export function App() {
         {state.status !== "loading" &&
           (library ? (
             <div className="mt-10">
-              <LibraryList library={library} current={current && { date: current.live.date, number: current.match.number }} onOpen={openMatch} onClose={() => setLibrary(undefined)} />
+              <LibraryList
+                library={library}
+                current={current && { date: current.live.date, number: current.match.number }}
+                onOpen={(live, match) => (setShort(undefined), openMatch(live, match))}
+                onShorts={shorts}
+                onClose={() => setLibrary(undefined)}
+              />
+              {finding && <p className="mt-3 text-[13px] text-white/60">{finding}</p>}
             </div>
           ) : (
             <LibraryButtons onLibrary={setLibrary} />
@@ -165,7 +207,30 @@ const CAMS = { theirs: "As they played", on: "Ball cam", off: "Car cam" } as con
  * Plays a replay; `at` starts it somewhere other than the beginning, and `onBoard` sets the moment out on the board.
  * With the stream's recording (`vod`) it's the studio: both in step, swapping which one fills the screen.
  */
-function Player({ replay, at, onBoard, vod, onVod, picker }: { replay: Replay; at?: number; onBoard: (time: number) => void; vod?: File; onVod: (file: File) => void; picker?: ReactNode }) {
+/**
+ * A short's picture, in the screen's own pixels: the top of a 1080×1920 short, over Luan's camera. OBS's "Shorts"
+ * profile captures the screen from its top left corner, with the browser full screen, so the page puts it there.
+ */
+const STAGE = [1080, 1056]
+
+function Player({
+  replay,
+  at,
+  onBoard,
+  vod,
+  onVod,
+  picker,
+  short,
+}: {
+  replay: Replay
+  at?: number
+  onBoard: (time: number) => void
+  vod?: File
+  onVod: (file: File) => void
+  picker?: ReactNode
+  /** Recording shorts: the play to line up and loop, and the day's list of them. */
+  short?: { play: Play; list: ReactNode }
+}) {
   const playback = useMemo(() => {
     const playback = new Playback(replay.times[0], replay.times[replay.times.length - 1], gaps(replay.times))
     if (at !== undefined) playback.seek(at)
@@ -177,7 +242,7 @@ function Player({ replay, at, onBoard, vod, onVod, picker }: { replay: Replay; a
   const [tool, setTool] = useState<Tool>()
   const [ink, setInk] = useState(INKS[1])
   const [strokes, setStrokes] = useState<Stroke[]>([])
-  const [screen, setScreen] = useState<Screen>("3d")
+  const [screen, setScreen] = useState<Screen>(short ? "vod" : "3d")
   const [range, setRange] = useState<[number, number]>()
   const [loop, setLoop] = useState(false)
   const [volume, setVolume] = useState(0.25)
@@ -196,9 +261,36 @@ function Player({ replay, at, onBoard, vod, onVod, picker }: { replay: Replay; a
       // Remembered for this visit only.
     }
   }
-  const lookup = useSync(replay, studio && Boolean(vod))
+  const studioOn = studio || Boolean(short)
+  const lookup = useSync(replay, studioOn && Boolean(vod))
   const { sync, nudge, setNudge } = useLineUp(replay, lookup)
-  const shown: Screen = studio && vod ? screen : "3d"
+  const shown: Screen = studioOn && vod ? screen : "3d"
+
+  // A short's play, once the studio knows the match: its stretch, looping, paused at its start.
+  const play = short?.play
+  const lined = useRef<Play>(undefined)
+  useEffect(() => {
+    if (!play || lookup?.status !== "found" || !sync.session || sync.index === undefined || !sync.recording) return
+    const match = sync.session.matches[sync.index]
+    if (match.id !== play.match || lined.current === play) return
+    lined.current = play
+    const base = (Date.parse(match.start) - Date.parse(sync.recording)) / 1000
+    const from = toReplay(sync, base + play.from).time
+    const to = toReplay(sync, base + play.to).time
+    setRange([from, Math.max(to, from + 1)])
+    setLoop(true)
+    playback.set({ playing: false })
+    playback.seek(from)
+  }, [play, lookup, sync, playback])
+
+  const fullScreen = useFullScreen()
+  useEffect(() => {
+    if (!short) return
+    const before = document.title
+    document.title = "RLR · Shorts"
+    return () => void (document.title = before)
+  }, [short])
+  const dpr = window.devicePixelRatio || 1
   const swap = () => setScreen((current) => (current === "3d" ? "vod" : "3d"))
   const ticks = useMemo(() => sync.events.filter((event) => event.by === "me").map((event) => ({ time: event.time, label: event.name ?? event.type })), [sync])
 
@@ -252,8 +344,17 @@ function Player({ replay, at, onBoard, vod, onVod, picker }: { replay: Replay; a
 
   useEffect(() => setView((current) => (current.kind === "player" ? { ...current, ballCam } : current)), [ballCam])
 
-  return (
-    <main className="relative h-screen w-screen overflow-hidden bg-[#050a1a] text-[#f4f5f7]">
+  const gauge = (
+    <>
+      {shown === "3d" && view.kind === "player" && (
+        <div className="pointer-events-none! flex justify-end pr-2">
+          <Gauge car={replay.cars[view.car]} replay={replay} playback={playback} />
+        </div>
+      )}
+    </>
+  )
+  const picture = (
+    <>
       <Scene replay={replay} playback={playback} view={view} tags={tags} />
       {replay.cars.map((car, index) => (
         <span
@@ -265,7 +366,7 @@ function Player({ replay, at, onBoard, vod, onVod, picker }: { replay: Replay; a
           {car.name}
         </span>
       ))}
-      {studio && vod && <StudioVideo key={`${vod.name}:${vod.lastModified}:${vod.size}`} vod={vod} sync={sync} nudge={nudge} playback={playback} screen={shown} onSwap={swap} volume={volume} />}
+      {studioOn && vod && <StudioVideo key={`${vod.name}:${vod.lastModified}:${vod.size}`} vod={vod} sync={sync} nudge={nudge} playback={playback} screen={shown} onSwap={swap} volume={volume} short={Boolean(short)} />}
       {shown === "3d" && <Announcer replay={replay} playback={playback} />}
       <Sketch tool={tool} color={ink} strokes={strokes} onChange={setStrokes} />
 
@@ -275,93 +376,139 @@ function Player({ replay, at, onBoard, vod, onVod, picker }: { replay: Replay; a
         </div>
       )}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 space-y-2 p-4 [&>*]:pointer-events-auto">
-        {shown === "3d" && view.kind === "player" && (
-          <div className="pointer-events-none! flex justify-end pr-2">
-            <Gauge car={replay.cars[view.car]} replay={replay} playback={playback} />
-          </div>
-        )}
-        {studio && (
-          <StudioBar
-            replay={replay}
-            playback={playback}
-            vod={vod}
-            onVod={onVod}
-            lookup={lookup}
-            sync={sync}
-            nudge={nudge}
-            onNudge={setNudge}
-            screen={shown}
-            onSwap={swap}
-            range={range}
-            onRange={setRange}
-            loop={loop}
-            onLoop={setLoop}
-            onClose={() => openStudio(false)}
-            volume={volume}
-            onVolume={setVolume}
-          />
-        )}
-        <div className="flex flex-wrap items-center gap-2 text-[12px]">
-          {picker}
-          <Group>
-            <Choice active={view.kind === "free"} onClick={() => setView({ kind: "free" })}>Free</Choice>
-            <Choice active={view.kind === "overhead"} onClick={() => setView({ kind: "overhead" })}>Overhead</Choice>
-            {replay.cars.map((car, index) => (
-              <Choice key={car.id} active={view.kind === "player" && view.car === index} onClick={() => follow(index)}>
-                <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ background: TEAMS[car.team].color }} />
-                {car.name}
-              </Choice>
-            ))}
-          </Group>
-          {view.kind === "player" && (
-            <Group>
-              {(Object.keys(CAMS) as (keyof typeof CAMS)[]).map((mode) => (
-                <Choice key={mode} active={ballCam === mode} onClick={() => setBallCam(mode)}>
-                  {CAMS[mode]}
-                  {mode === "theirs" && <TheirCam car={replay.cars[view.car]} replay={replay} playback={playback} />}
-                </Choice>
-              ))}
-            </Group>
-          )}
-          <Group>
-            {(["pen", "arrow", "circle"] as const).map((name) => (
-              <Choice key={name} active={tool === name} onClick={() => setTool(tool === name ? undefined : name)}>
-                {name === "pen" ? "Pen" : name === "arrow" ? "Arrow" : "Circle"}
-              </Choice>
-            ))}
-            {INKS.map((color) => (
-              <button
-                key={color}
-                onClick={() => setInk(color)}
-                className="mx-1 h-4 w-4 rounded-full border-2"
-                style={{ background: color, borderColor: color === ink ? "#fff" : "transparent" }}
-                aria-label={`Ink ${color}`}
-              />
-            ))}
-            <Choice active={false} onClick={() => setStrokes([])}>Clear</Choice>
-          </Group>
-          <Group>
-            <Choice
-              active={false}
-              onClick={() => {
-                playback.set({ playing: false })
-                onBoard(playback.time)
-              }}
-            >
-              Open this moment on the board
+    </>
+  )
+  const bar = (
+    <>
+      {studioOn && (
+        <StudioBar
+          replay={replay}
+          playback={playback}
+          vod={vod}
+          onVod={onVod}
+          lookup={lookup}
+          sync={sync}
+          nudge={nudge}
+          onNudge={setNudge}
+          screen={shown}
+          onSwap={swap}
+          range={range}
+          onRange={setRange}
+          loop={loop}
+          onLoop={setLoop}
+          onClose={() => openStudio(false)}
+          volume={volume}
+          onVolume={setVolume}
+          short={short && { chapter: playName(short.play) }}
+        />
+      )}
+    </>
+  )
+  const controls = (
+    <div className="flex flex-wrap items-center gap-2 text-[12px]">
+      {picker}
+      <Group>
+        <Choice active={view.kind === "free"} onClick={() => setView({ kind: "free" })}>Free</Choice>
+        <Choice active={view.kind === "overhead"} onClick={() => setView({ kind: "overhead" })}>Overhead</Choice>
+        {replay.cars.map((car, index) => (
+          <Choice key={car.id} active={view.kind === "player" && view.car === index} onClick={() => follow(index)}>
+            <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ background: TEAMS[car.team].color }} />
+            {car.name}
+          </Choice>
+        ))}
+      </Group>
+      {view.kind === "player" && (
+        <Group>
+          {(Object.keys(CAMS) as (keyof typeof CAMS)[]).map((mode) => (
+            <Choice key={mode} active={ballCam === mode} onClick={() => setBallCam(mode)}>
+              {CAMS[mode]}
+              {mode === "theirs" && <TheirCam car={replay.cars[view.car]} replay={replay} playback={playback} />}
             </Choice>
-            {!studio && (
-              <Choice active={false} onClick={() => openStudio(true)}>
-                Studio
-              </Choice>
-            )}
-          </Group>
+          ))}
+        </Group>
+      )}
+      <Group>
+        {(["pen", "arrow", "circle"] as const).map((name) => (
+          <Choice key={name} active={tool === name} onClick={() => setTool(tool === name ? undefined : name)}>
+            {name === "pen" ? "Pen" : name === "arrow" ? "Arrow" : "Circle"}
+          </Choice>
+        ))}
+        {INKS.map((color) => (
+          <button
+            key={color}
+            onClick={() => setInk(color)}
+            className="mx-1 h-4 w-4 rounded-full border-2"
+            style={{ background: color, borderColor: color === ink ? "#fff" : "transparent" }}
+            aria-label={`Ink ${color}`}
+          />
+        ))}
+        <Choice active={false} onClick={() => setStrokes([])}>Clear</Choice>
+      </Group>
+      <Group>
+        <Choice
+          active={false}
+          onClick={() => {
+            playback.set({ playing: false })
+            onBoard(playback.time)
+          }}
+        >
+          Open this moment on the board
+        </Choice>
+        {!studio && (
+          <Choice active={false} onClick={() => openStudio(true)}>
+            Studio
+          </Choice>
+        )}
+      </Group>
+    </div>
+  )
+
+  if (short) {
+    return (
+      <main className="relative h-screen w-screen overflow-hidden bg-[#050a1a] text-[#f4f5f7]">
+        <div className="absolute left-0 top-0 overflow-hidden" style={{ width: STAGE[0] / dpr, height: STAGE[1] / dpr }}>
+          {picture}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 p-4">{gauge}</div>
         </div>
+        <aside className="absolute bottom-0 right-0 top-0 flex flex-col gap-3 overflow-hidden p-5" style={{ left: STAGE[0] / dpr }}>
+          {!fullScreen && (
+            <button onClick={() => void document.documentElement.requestFullscreen()} className="rounded-lg bg-[#f4f5f7] px-3 py-2 text-[13px] font-medium text-[#002fa7]">
+              Full screen: OBS records the picture from the screen's top left corner
+            </button>
+          )}
+          {short.list}
+          <div className="space-y-2 [&>*]:pointer-events-auto">
+            {bar}
+            {controls}
+            <Timeline replay={replay} playback={playback} range={range} ticks={ticks} />
+          </div>
+        </aside>
+      </main>
+    )
+  }
+
+  return (
+    <main className="relative h-screen w-screen overflow-hidden bg-[#050a1a] text-[#f4f5f7]">
+      {picture}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 space-y-2 p-4 [&>*]:pointer-events-auto">
+        {gauge}
+        {bar}
+        {controls}
         <Timeline replay={replay} playback={playback} range={range} ticks={ticks} />
       </div>
     </main>
   )
+}
+
+/** Whether the page is full screen. */
+function useFullScreen() {
+  const [full, setFull] = useState(() => Boolean(document.fullscreenElement))
+  useEffect(() => {
+    const change = () => setFull(Boolean(document.fullscreenElement))
+    document.addEventListener("fullscreenchange", change)
+    return () => document.removeEventListener("fullscreenchange", change)
+  }, [])
+  return full
 }
 
 /** Which camera the followed player had on at the playhead. */

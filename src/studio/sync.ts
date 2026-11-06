@@ -25,6 +25,8 @@ export interface Entry {
   name?: string
   by?: string
   kmh?: number
+  /** Who touched the ball last (goals, the crossbar). */
+  last?: string
 }
 
 export interface Events {

@@ -61,7 +61,7 @@ function readNudge(key: string) {
 }
 
 /** The recording, in the corner or filling the screen, playing in step with the replay. */
-export function StudioVideo({ vod, sync, nudge, playback, screen, onSwap, volume }: { vod: File; sync: Sync; nudge: number; playback: Playback; screen: Screen; onSwap: () => void; volume: number }) {
+export function StudioVideo({ vod, sync, nudge, playback, screen, onSwap, volume, short }: { vod: File; sync: Sync; nudge: number; playback: Playback; screen: Screen; onSwap: () => void; volume: number; short?: boolean }) {
   const video = useRef<HTMLVideoElement>(null)
   useEffect(() => void (video.current && (video.current.volume = volume)), [volume])
   const src = useMemo(() => URL.createObjectURL(vod), [vod])
@@ -120,9 +120,12 @@ export function StudioVideo({ vod, sync, nudge, playback, screen, onSwap, volume
         onError={() => setLost(true)}
         onClick={main ? undefined : onSwap}
         className={
+          // A short's picture is the middle of the game, cut to fill it; behind the 3D it plays unseen, for its sound.
           main
-            ? "absolute inset-0 h-full w-full bg-black object-contain"
-            : "absolute right-6 top-36 z-10 aspect-video w-72 cursor-pointer rounded-lg border border-white/20 bg-black object-contain shadow-xl hover:border-[#85a7ff]"
+            ? `absolute inset-0 h-full w-full bg-black ${short ? "object-cover" : "object-contain"}`
+            : short
+              ? "hidden"
+              : "absolute right-6 top-36 z-10 aspect-video w-72 cursor-pointer rounded-lg border border-white/20 bg-black object-contain shadow-xl hover:border-[#85a7ff]"
         }
       />
       {lost && (
@@ -158,6 +161,7 @@ export function StudioBar({
   onClose,
   volume,
   onVolume,
+  short,
 }: {
   replay: Replay
   playback: Playback
@@ -176,10 +180,19 @@ export function StudioBar({
   onClose: () => void
   volume: number
   onVolume: (volume: number) => void
+  /** Recording shorts: OBS records with its "Shorts" profile, and each play is a chapter named for it. */
+  short?: { chapter: string }
 }) {
   usePlayback(playback)
   const marks = useMarks(replay)
   const obs = useObs()
+
+  // Each play recorded is a chapter of the take, so the edit knows which play it was.
+  const recordingNow = Boolean(obs.recording?.active)
+  const chapter = short?.chapter
+  useEffect(() => {
+    if (recordingNow && chapter) void obs.client?.chapter(chapter)
+  }, [recordingNow, chapter, obs.client])
 
   const mark = () => {
     const time = playback.time
@@ -304,7 +317,7 @@ export function StudioBar({
         )}
       </Group>
 
-      <ObsControls obs={obs} />
+      <ObsControls obs={obs} short={Boolean(short)} />
 
       <Group>
         <Choice active={false} onClick={onClose}>
@@ -369,8 +382,46 @@ function useObs() {
   return { ...state, connect }
 }
 
+/** OBS's profile and scene collection for shorts (`brand/twitch/obs_shorts.py` in Luan's site's repository). */
+const SHORTS = "Shorts"
+const BACK = "rlr:obs:back"
+
+/** Shorts are recorded with their own profile (a 1080×1920 canvas); the live's is put back afterwards. Never on air. */
+async function intoShorts(client: Obs) {
+  if ((await client.call("GetStreamStatus")).outputActive) throw new Error("OBS is live: record shorts off air.")
+  const profile = String((await client.call("GetProfileList")).currentProfileName)
+  const collection = String((await client.call("GetSceneCollectionList")).currentSceneCollectionName)
+  if (profile === SHORTS && collection === SHORTS) return
+  try {
+    localStorage.setItem(BACK, JSON.stringify({ profile, collection }))
+  } catch {
+    // Put back by hand then.
+  }
+  if (profile !== SHORTS) await client.call("SetCurrentProfile", { profileName: SHORTS })
+  if (collection !== SHORTS) await client.call("SetCurrentSceneCollection", { sceneCollectionName: SHORTS })
+  // The collection's sources (the camera) take a moment to start.
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+}
+
+/** Back to the live's profile and scenes, once the recording has stopped. */
+export async function outOfShorts(client: Obs) {
+  let back: { profile: string; collection: string } | undefined
+  try {
+    back = JSON.parse(localStorage.getItem(BACK) ?? "null") ?? undefined
+  } catch {
+    back = undefined
+  }
+  if (!back) return
+  for (let i = 0; i < 20 && (await client.recording()).active; i++) await new Promise((resolve) => setTimeout(resolve, 500))
+  await client.call("SetCurrentSceneCollection", { sceneCollectionName: back.collection })
+  await client.call("SetCurrentProfile", { profileName: back.profile })
+  localStorage.removeItem(BACK)
+}
+
 /** Connecting to OBS, then starting and stopping its recording, with how long it's been going. */
-function ObsControls({ obs }: { obs: ReturnType<typeof useObs> }) {
+function ObsControls({ obs, short }: { obs: ReturnType<typeof useObs>; short: boolean }) {
+  const [problem, setProblem] = useState<string>()
+  const [inShorts, setInShorts] = useState(false)
   const [asking, setAsking] = useState(false)
   const [settings, setSettings] = useState(savedObs)
   const elapsed = useElapsed(obs.recording)
@@ -413,14 +464,33 @@ function ObsControls({ obs }: { obs: ReturnType<typeof useObs> }) {
   }
 
   const recording = obs.recording?.active
+  const client = obs.client
+  const toggle = async () => {
+    setProblem(undefined)
+    try {
+      if (recording) await client.call("StopRecord")
+      else {
+        if (short) await intoShorts(client).then(() => setInShorts(true))
+        await client.call("StartRecord")
+      }
+    } catch (error) {
+      setProblem(String((error as Error).message ?? error))
+    }
+  }
   return (
     <Group>
+      {problem && <span className="px-2.5 py-1.5 text-[#ff8a8a]">{problem}</span>}
+      {short && inShorts && !recording && (
+        <Choice active={false} onClick={() => void outOfShorts(client).then(() => setInShorts(false), (error) => setProblem(String(error.message ?? error)))}>
+          Back to the live's OBS
+        </Choice>
+      )}
       <button
-        onClick={() => void obs.client!.call(recording ? "StopRecord" : "StartRecord").catch(() => undefined)}
+        onClick={() => void toggle()}
         className={`flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 ${recording ? "bg-[#e5484d] text-white" : "text-white/75 hover:bg-white/10"}`}
       >
         <span className={`h-2 w-2 rounded-full ${recording ? "animate-pulse bg-white" : "bg-[#e5484d]"}`} />
-        {recording ? `Recording ${elapsed}` : "Record in OBS"}
+        {recording ? `Recording ${elapsed}` : short ? "Record a short" : "Record in OBS"}
       </button>
     </Group>
   )

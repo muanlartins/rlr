@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import { Choice, Group } from "../ui/controls"
 import { canKeep, fromFiles, pick, remembered, reopen, type DirectoryHandle, type Live, type LiveMatch } from "./lives"
+import { findPlays, transcriptOf, type Play } from "./plays"
+import { sessionsNear } from "./sync"
 
 /**
  * The studio's way in for Luan: his lives folder, each day with its matches; a match opens with its replay,
@@ -73,7 +75,19 @@ const dayName = (date: string) => `${+date.slice(8, 10)} ${MONTHS[+date.slice(5,
 const won = (match: LiveMatch) => /^vit/i.test(match.result)
 
 /** The lives, newest first, each with its matches. */
-export function LibraryList({ library, current, onOpen, onClose }: { library: Library; current?: { date: string; number: number }; onOpen: (live: Live, match: LiveMatch) => void; onClose: () => void }) {
+export function LibraryList({
+  library,
+  current,
+  onOpen,
+  onShorts,
+  onClose,
+}: {
+  library: Library
+  current?: { date: string; number: number }
+  onOpen: (live: Live, match: LiveMatch) => void
+  onShorts: (live: Live) => void
+  onClose: () => void
+}) {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 text-left">
       <div className="mb-4 flex items-baseline justify-between gap-4">
@@ -88,6 +102,9 @@ export function LibraryList({ library, current, onOpen, onClose }: { library: Li
             <h3 className="mb-2 text-[13px] uppercase tracking-[0.15em] text-white/50">
               {dayName(live.date)}
               {!live.recordings.length && <span className="ml-2 normal-case tracking-normal text-[#ff9b9e]">no recording</span>}
+              <button onClick={() => onShorts(live)} className="ml-3 rounded-full border border-white/20 px-2.5 py-0.5 normal-case tracking-normal text-white/75 hover:bg-white/10">
+                Shorts
+              </button>
             </h3>
             <div className="flex flex-wrap gap-2">
               {live.matches.map((match) => {
@@ -131,5 +148,59 @@ export function MatchPicker({ live, match, onOpen, onList }: { live: Live; match
         <span className={next ? "" : "opacity-30"}>›</span>
       </Choice>
     </Group>
+  )
+}
+
+/** The day's plays worth a short (`plays.ts`), with only those whose match has its replay in the folder. */
+export async function playsOf(live: Live): Promise<Play[]> {
+  const [candidates, transcript] = await Promise.all([sessionsNear(live.date), transcriptOf(live.date)])
+  return findPlays(live.date, candidates, transcript).filter((play) => live.matches.some((match) => match.number === play.number))
+}
+
+export const playName = (play: Play) => `Match ${play.number} · ${play.label}`
+
+/** A short's side of the screen: the day's plays, best first, and which one is on. */
+export function PlayList({ live, plays, play, onPlay, onLeave }: { live: Live; plays: Play[]; play: Play; onPlay: (play: Play) => void; onLeave: () => void }) {
+  const at = plays.indexOf(play)
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-[13px] uppercase tracking-[0.15em] text-white/50">Shorts · {dayName(live.date)}</h2>
+        <button onClick={onLeave} className="text-[12px] text-white/50 hover:text-white">
+          Lives
+        </button>
+      </div>
+      <div className="flex items-center gap-2">
+        <Group>
+          <Choice active={false} onClick={() => plays[at - 1] && onPlay(plays[at - 1])}>
+            <span className={plays[at - 1] ? "" : "opacity-30"}>‹</span>
+          </Choice>
+          <span className="whitespace-nowrap px-2 py-1.5 text-[13px] text-white/85">
+            {at + 1} of {plays.length}
+          </span>
+          <Choice active={false} onClick={() => plays[at + 1] && onPlay(plays[at + 1])}>
+            <span className={plays[at + 1] ? "" : "opacity-30"}>›</span>
+          </Choice>
+        </Group>
+        <p className="min-w-0 truncate text-lg font-medium">{playName(play)}</p>
+      </div>
+      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
+        {plays.map((each, index) => (
+          <button
+            key={`${each.number}:${each.t}`}
+            onClick={() => onPlay(each)}
+            className={`flex w-full items-baseline gap-3 rounded-lg border px-3 py-2 text-left text-[13px] ${each === play ? "border-[#85a7ff] bg-white/10" : "border-white/10 bg-[#0b1430] hover:border-white/30"}`}
+          >
+            <span className="w-5 text-white/40">{index + 1}</span>
+            <span className="flex-1">
+              <span className="text-white/45">Match {each.number} · </span>
+              <span className={each.kind === "goal" ? "text-[#85a7ff]" : "text-white/85"}>{each.label}</span>
+              {each.said.length > 0 && <span className="block truncate text-[12px] text-white/45">“{each.said.join(" ")}”</span>}
+            </span>
+            <span className="font-mono tabular-nums text-white/40">{each.points}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
