@@ -15,8 +15,8 @@ importers:
         specifier: ^9.8.1
         version: 9.8.1(@types/react@19.3.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(three@0.182.0)
       '@rlrml/subtr-actor':
-        specifier: 1.4.0
-        version: 1.4.0
+        specifier: file:vendor/subtr-actor
+        version: file:vendor/subtr-actor
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -313,8 +313,8 @@ packages:
       react-native:
         optional: true
 
-  '@rlrml/subtr-actor@1.4.0':
-    resolution: {integrity: sha512-UgDBCk7sWiNzK+RcE+1Cuq3w4tXhYlf3iP3ljEdWqCDGaO+UzVN6f7D72GLw/eGNaAqeS/4eY1BZ/4YCHCZJMQ==}
+  '@rlrml/subtr-actor@file:vendor/subtr-actor':
+    resolution: {directory: vendor/subtr-actor, type: directory}
 
   '@rolldown/binding-android-arm-eabi@1.2.12':
     resolution: {integrity: sha512-dB/a1214qKfHMXCpgqR4OZT+jS4kTyEXbQGJPqzobt5EwH5rX080pxE37alt3RzvR1bf1Yz/yGqRfrYAxuPw0A==}
@@ -1443,7 +1443,7 @@ snapshots:
       - '@types/react'
       - immer
 
-  '@rlrml/subtr-actor@1.4.0': {}
+  '@rlrml/subtr-actor@file:vendor/subtr-actor': {}
 
   '@rolldown/binding-android-arm-eabi@1.2.12':
     optional: true

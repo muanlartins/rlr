@@ -13,7 +13,7 @@
   "dependencies": {
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.1",
-    "@rlrml/subtr-actor": "1.4.0",
+    "@rlrml/subtr-actor": "file:vendor/subtr-actor",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "three": "^0.182.0"

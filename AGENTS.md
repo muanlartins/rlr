@@ -67,6 +67,9 @@ the game's. Read `README.md` for what it does and the credits.
   "Their ball cam" replays what the player saw.
 - **subtr-actor's wasm** is loaded by explicit URL (`?url` import) and the package
   is excluded from Vite's dependency pre-bundling; don't undo either.
+- **subtr-actor is vendored** (`vendor/subtr-actor`, see its VENDORED.md): 1.4.0 rebuilt with a boxcars fix for
+  replays where an accepted honor duel is cleared (nickbabcock/boxcars#305). Back to the npm package once a release
+  has it.
 - **Name tags** are plain elements over the canvas that `scene/name-tags.tsx`
   moves every frame. Not drei's `<Html>`: each of those is its own React root,
   and StrictMode's double mount in dev left one car without its name.
