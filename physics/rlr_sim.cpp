@@ -87,6 +87,20 @@ EMSCRIPTEN_KEEPALIVE void rs_kickoff(int seed) {
 
 EMSCRIPTEN_KEEPALIVE int rs_goals(int team) { return goals[team]; }
 
+// Unlimited boost, as in the game's free play: none is used, and cars are filled now and at each kickoff.
+EMSCRIPTEN_KEEPALIVE void rs_unlimited_boost(int on) {
+	MutatorConfig config = arena->GetMutatorConfig();
+	config.boostUsedPerSecond = on ? 0 : RLConst::BOOST_USED_PER_SECOND;
+	config.carSpawnBoostAmount = on ? 100 : RLConst::BOOST_SPAWN_AMOUNT;
+	arena->SetMutatorConfig(config);
+	if (!on) return;
+	for (Car* car : cars) {
+		CarState state = car->GetState();
+		state.boost = 100;
+		car->SetState(state);
+	}
+}
+
 static float* body(float* out, const PhysState& state) {
 	const Vec* vectors[] = {&state.pos, &state.rotMat.forward, &state.rotMat.right, &state.rotMat.up, &state.vel, &state.angVel};
 	for (const Vec* vector : vectors) {
