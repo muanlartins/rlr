@@ -31,7 +31,8 @@ interface Hud {
 
 /**
  * Free play on RocketSim: one Octane and the ball, driven with a gamepad or
- * the keyboard, from a kickoff. The first step towards replaying a moment of a
+ * the keyboard, from a kickoff, with unlimited boost unless turned off, as in
+ * the game's free play. The first step towards replaying a moment of a
  * replay with your own car.
  */
 export function PlayPage({ onClose }: { onClose: () => void }) {
@@ -40,6 +41,11 @@ export function PlayPage({ onClose }: { onClose: () => void }) {
   const [hud, setHud] = useState<Hud>({ boost: 33, speed: 0, goals: [0, 0], device: "keys", ballCam: true })
   const stage = useRef<HTMLDivElement>(null)
   const [input, setInput] = useState<Input>()
+  const [unlimited, setUnlimited] = useState(true)
+  const toggleBoost = () => {
+    sim?.unlimitedBoost(!unlimited)
+    setUnlimited(!unlimited)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -47,6 +53,7 @@ export function PlayPage({ onClose }: { onClose: () => void }) {
       (made) => {
         if (cancelled) return
         made.addCar(0)
+        made.unlimitedBoost(true)
         made.kickoff()
         setSim(made)
       },
@@ -83,6 +90,13 @@ export function PlayPage({ onClose }: { onClose: () => void }) {
       <div className="absolute bottom-4 right-4 flex flex-col items-center gap-1">
         <BoostGauge boost={hud.boost} color={TEAMS[0].color} speed={hud.speed} />
         <span className="text-[12px] text-white/50">{hud.ballCam ? "Ball cam" : "Car cam"}</span>
+        <button
+          onClick={toggleBoost}
+          onMouseDown={(event) => event.stopPropagation()}
+          className="mt-1 rounded-lg border border-white/10 bg-[#0b1430]/85 px-3 py-1.5 text-[12px] text-white/80 backdrop-blur hover:bg-white/10"
+        >
+          {unlimited ? "Unlimited boost: on" : "Unlimited boost: off"}
+        </button>
       </div>
     </div>
   )

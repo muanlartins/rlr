@@ -11,6 +11,7 @@ export interface RocketSimModule {
   _rs_step(ticks: number): void
   _rs_kickoff(seed: number): void
   _rs_goals(team: number): number
+  _rs_unlimited_boost(on: number): void
   _rs_state(out: number): void
   _rs_pad_count(): number
   _rs_pads(out: number): void

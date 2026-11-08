@@ -96,6 +96,12 @@ export class Sim {
     this.previous.set(this.current)
   }
 
+  /** Unlimited boost, as in the game's free play. */
+  unlimitedBoost(on: boolean) {
+    this.wasm._rs_unlimited_boost(+on)
+    this.read()
+  }
+
   goals(): [number, number] {
     return [this.wasm._rs_goals(0), this.wasm._rs_goals(1)]
   }
