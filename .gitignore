@@ -4,3 +4,5 @@ dist
 tools/_*
 assets-src
 samples
+physics/.rocketsim
+physics/.obj

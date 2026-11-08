@@ -34,6 +34,9 @@ the game's. Read `README.md` for what it does and the credits.
 | `src/ui/*` | Timeline, scoreboard, announcer, drawing, shared buttons |
 | `src/studio/*` | The studio: the stream's recording in step with the replay, marks, OBS |
 | `src/board/*` | The tactics board: its model (pieces, pads, marks, the link format), the page, and what goes on the pitch |
+| `src/physics/*` | RocketSim in the browser: `sim.ts` over the wasm, `arena-mesh.ts` (our walls for it), `input.ts` (gamepad, keyboard) |
+| `src/play/*` | Free play on the physics (`?play`) |
+| `physics/` | `build.sh` builds RocketSim and `rlr_sim.cpp` (its C interface) into `src/physics/rocketsim.{mjs,wasm}` |
 | `tools/models.mjs` | `pnpm models`: builds `public/models` from the sources |
 
 ## Conventions that bite
@@ -80,6 +83,20 @@ the game's. Read `README.md` for what it does and the credits.
   replays: compare it, never hardcode it. While the game shows its own goal
   replay nothing is recorded, a 1–7 s hole in `times` that playing skips
   (`gaps`); `ui/announcer.tsx` shows the goal and the countdown.
+
+## The physics
+
+- RocketSim (MIT, pinned by commit in `physics/build.sh`) is built with Emscripten; the built `.mjs` and
+  `.wasm` are committed, since the site's build has no Emscripten. Rebuild after changing `rlr_sim.cpp`:
+  `source ~/.local/share/emsdk/emsdk_env.sh && physics/build.sh`.
+- Its arena meshes normally come dumped from the game; those are Psyonix's and can't be published, so
+  `arena-mesh.ts` draws ours from the same measurements as the pitch: back walls, corners, goals and a
+  quarter-circle floor ramp (the game's isn't quite circular). RocketSim adds the floor, ceiling and side
+  walls as planes itself. Meshes go to RocketSim in Bullet's units (uu / 50); everything else is uu.
+- The wasm speaks the game's units (uu, Z up); `sim.ts` turns them into scene space like the worker does,
+  and a body's rotation matrix into a quaternion with the car's own X ahead, Y up, Z right.
+- It ticks at 120 a second off the frame clock (at most 12 ticks a frame); drawing interpolates between
+  the last two ticks.
 
 ## The board
 

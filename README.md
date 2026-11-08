@@ -34,6 +34,12 @@ directly. Replays come from your game's `Demos` folder, or from
 
 Drawings are for the paused moment: playing on clears them.
 
+## Free play (experimental)
+
+`?play` drives an Octane on [RocketSim](https://github.com/ZealanL/RocketSim), Rocket League's physics rebuilt
+from the outside, with a gamepad (the game's default layout) or the keyboard. It's the first step towards
+rewinding a replay and playing a moment yourself.
+
 ## The board
 
 A tactics board on the same pitch, without a replay: "Open the board" on the
@@ -117,6 +123,8 @@ web worker, and everything drawn here comes from that.
   repainted, and with its pitch replaced by one drawn to the game's measurements.
 - Replay parsing: [subtr-actor](https://github.com/rlrml/subtr-actor) and
   [boxcars](https://github.com/nickbabcock/boxcars) (MIT).
+- Physics for free play (`?play`): [RocketSim](https://github.com/ZealanL/RocketSim) by ZealanL (MIT), built for
+  the browser, on arena walls drawn by us rather than the game's.
 - Pitch measurements: RLBot's [useful game values](https://github.com/RLBot/wiki/blob/master/docs/v5/botmaking/useful-game-values.md).
 
 Rocket League is a trademark of Psyonix. This is a fan project, not made or
