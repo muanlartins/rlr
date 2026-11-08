@@ -90,9 +90,12 @@ the game's. Read `README.md` for what it does and the credits.
   `.wasm` are committed, since the site's build has no Emscripten. Rebuild after changing `rlr_sim.cpp`:
   `source ~/.local/share/emsdk/emsdk_env.sh && physics/build.sh`.
 - Its arena meshes normally come dumped from the game; those are Psyonix's and can't be published, so
-  `arena-mesh.ts` draws ours from the same measurements as the pitch: back walls, corners, goals and a
-  quarter-circle floor ramp (the game's isn't quite circular). RocketSim adds the floor, ceiling and side
-  walls as planes itself. Meshes go to RocketSim in Bullet's units (uu / 50); everything else is uu.
+  `arena-mesh.ts` draws ours: RLBot's measurements, with the curves fitted by circles to the community's
+  arena model in rl_ball_sym (measured, not copied): rounded corners (925 uu), the floor ramp (256 uu at
+  the sides and corners, 160 along the back walls, narrowing to 96 and wrapping round each post into the
+  goal), the ceiling ramp (508 uu) and the goals. Its floor line is within ~11 uu of that model's. RocketSim
+  adds the floor, ceiling and side walls as planes itself. Meshes go to RocketSim in Bullet's units
+  (uu / 50); everything else is uu.
 - The wasm speaks the game's units (uu, Z up); `sim.ts` turns them into scene space like the worker does,
   and a body's rotation matrix into a quaternion with the car's own X ahead, Y up, Z right.
 - It ticks at 120 a second off the frame clock (at most 12 ticks a frame); drawing interpolates between
