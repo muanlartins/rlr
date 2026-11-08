@@ -31,11 +31,11 @@ the game's. Read `README.md` for what it does and the credits.
 | `src/replay/sample.ts` | Finding the frame for a time, and smoothing between frames |
 | `src/playback.ts` | The playhead (time, playing, speed); the scene reads it every frame without React |
 | `src/scene/*` | The arena (`arena.tsx`: lights, stadium, pitch), cars, ball, boost pads, cameras, name tags; shared by the player and the board |
-| `src/ui/*` | Timeline, scoreboard, announcer, drawing, shared buttons |
+| `src/ui/*` | Timeline (with the toolbar under it), scoreboard (its players are also the camera switch), announcer, drawing, icons, buttons |
 | `src/studio/*` | The studio: the stream's recording in step with the replay, marks, OBS |
 | `src/board/*` | The tactics board: its model (pieces, pads, marks, the link format), the page, and what goes on the pitch |
 | `src/physics/*` | RocketSim in the browser: `sim.ts` over the wasm, `arena-mesh.ts` (our walls for it), `input.ts` (gamepad, keyboard) |
-| `src/play/*` | Free play on the physics (`?play`) |
+| `src/play/*` | Playing on the physics: a replay's moment as one of its players (`rewind.ts` turns the moment into the physics' state), or free play (`?play`) |
 | `physics/` | `build.sh` builds RocketSim and `rlr_sim.cpp` (its C interface) into `src/physics/rocketsim.{mjs,wasm}` |
 | `tools/models.mjs` | `pnpm models`: builds `public/models` from the sources |
 
@@ -100,6 +100,15 @@ the game's. Read `README.md` for what it does and the credits.
   and a body's rotation matrix into a quaternion with the car's own X ahead, Y up, Z right.
 - It ticks at 120 a second off the frame clock (at most 12 ticks a frame); drawing interpolates between
   the last two ticks.
+- **Playing from a moment.** Replays carry no controller inputs, so the other players can't be simulated,
+  only played back: every tick each other car is set to the replay's state (position, rotation, velocity,
+  angular velocity, boost) and the physics steps once, so they still bump, demolish and hit the ball. The
+  ball is set from the replay too until your car touches it (RocketSim's `ballHitInfo`); then it's left to
+  the physics. A car the replay has nothing for is taken off the pitch (demolished, parked outside the
+  walls). What your car has used in the air comes from the replay's jump flags (`carAt`); pads from the
+  replay's pickups. A moment with no ball (a goal being celebrated) starts at the next kickoff, and a
+  kickoff's countdown holds your car until the go. Angular velocity is in the replay in hundredths of a
+  radian a second; `Track.spin` is rad/s, remapped like positions.
 
 ## The board
 

@@ -17,6 +17,8 @@ export interface Track {
   quat: Float32Array
   /** Linear velocity, x, y, z per frame (m/s). */
   vel: Float32Array
+  /** Angular velocity, x, y, z per frame (rad/s), remapped like positions (the physics maps it back). */
+  spin: Float32Array
   /** 1 where the frame has data; 0 while it's missing (a demolished car, a reset ball). */
   present: Uint8Array
 }
@@ -101,7 +103,7 @@ export function buffers(replay: Replay) {
   return [
     replay.times.buffer,
     replay.clock.buffer,
-    ...tracks.flatMap((track) => [track.pos.buffer, track.quat.buffer, track.vel.buffer, track.present.buffer]),
+    ...tracks.flatMap((track) => [track.pos.buffer, track.quat.buffer, track.vel.buffer, track.spin.buffer, track.present.buffer]),
     ...replay.cars.flatMap((car) => [car.boost.buffer, car.flags.buffer, car.steer.buffer]),
   ] as ArrayBuffer[]
 }

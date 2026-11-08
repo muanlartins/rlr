@@ -13,7 +13,7 @@ export function Pads({ replay, playback }: { replay: Replay; playback: Playback 
   useFrame(() => {
     replay.pads.forEach((pad, index) => {
       const group = pads.current[index]
-      if (group) show(group, available(pad, playback.time))
+      if (group) showPad(group, available(pad, playback.time))
     })
   })
 
@@ -45,7 +45,7 @@ export function PadMarker({ at, big, up = true, ref, onClick }: { at: [number, n
 }
 
 /** Shows a pad's group as available or taken, without re-rendering. */
-function show(group: Group, up: boolean) {
+export function showPad(group: Group, up: boolean) {
   const [base, orb] = group.children
   if (orb) orb.visible = up
   ;(base as unknown as { material: { opacity: number } }).material.opacity = up ? 0.9 : 0.2

@@ -27,18 +27,21 @@ directly. Replays come from your game's `Demos` folder, or from
 | Shift ← → | Five seconds back / ahead |
 | 0 | Free camera (drag to orbit, scroll to zoom) |
 | 9 | Overhead |
-| 1–6 | Follow a player with their own camera settings |
+| 1–6 | Follow a player with their own camera settings (or click them up top) |
+| J | Play from here as the player you follow |
 | P, A, C | Pen, arrow, circle (again to put the tool down) |
 | X | Clear the drawing |
 | Esc | Put the tool down |
 
 Drawings are for the paused moment: playing on clears them.
 
-## Free play (experimental)
+## Play from here (experimental)
 
-`?play` drives an Octane on [RocketSim](https://github.com/ZealanL/RocketSim), Rocket League's physics rebuilt
-from the outside, with a gamepad (the game's default layout) or the keyboard. It's the first step towards
-rewinding a replay and playing a moment yourself.
+"Play from here" (J) takes the car of the player you follow at the paused moment and hands it to you, on
+[RocketSim](https://github.com/ZealanL/RocketSim), Rocket League's physics rebuilt from the outside, with a
+gamepad (the game's default layout) or the keyboard. The others play the replay back, and the ball follows
+it until you touch it: from then on the play is yours. It waits for your first input; R (Start on a pad)
+tries the same moment again. `?play` is free play: one car, the ball, unlimited boost.
 
 ## The board
 

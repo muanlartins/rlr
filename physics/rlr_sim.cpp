@@ -155,15 +155,43 @@ EMSCRIPTEN_KEEPALIVE void rs_set_ball(const float* in) {
 	arena->ball->SetState(state);
 }
 
-// Puts a car where `in` says (the 18 floats of rs_state, then boost), on its
-// wheels' flags as they were, with its jump and flip back.
+// Puts a car where `in` says: the 18 floats of rs_state, then boost, then what
+// the car has used since it left the ground (has jumped, has double jumped,
+// has flipped: 0 or 1; the seconds since its jump), then 1 to take it off the
+// pitch (a demolished car, or one the replay has nothing for).
 EMSCRIPTEN_KEEPALIVE void rs_set_car(int car, const float* in) {
 	CarState state = cars[car]->GetState();
 	static_cast<PhysState&>(state) = read(in);
 	state.boost = in[18];
-	state.hasJumped = state.hasDoubleJumped = state.hasFlipped = false;
+	state.hasJumped = in[19] > 0;
+	state.hasDoubleJumped = in[20] > 0;
+	state.hasFlipped = in[21] > 0;
+	state.airTimeSinceJump = in[22];
 	state.isJumping = state.isFlipping = false;
-	state.isDemoed = false;
+	state.isDemoed = in[23] > 0;
+	if (state.isDemoed) {
+		// Out of everyone's way, outside the walls, until it's put back.
+		state.demoRespawnTimer = 1e9f;
+		state.pos = Vec(5400, 5800, 2000);
+		state.vel = state.angVel = Vec();
+	}
 	cars[car]->SetState(state);
+}
+
+// The arena tick when the car last touched the ball, or -1 if it never has.
+EMSCRIPTEN_KEEPALIVE double rs_car_touched(int car) {
+	BallHitInfo hit = cars[car]->GetState().ballHitInfo;
+	return hit.isValid ? double(hit.tickCountWhenHit) : -1;
+}
+
+EMSCRIPTEN_KEEPALIVE double rs_tick() { return double(arena->tickCount); }
+
+// A pad there (1) or taken (0), coming back in `cooldown` seconds.
+EMSCRIPTEN_KEEPALIVE void rs_set_pad(int pad, int active, float cooldown) {
+	BoostPad* boostPad = arena->GetBoostPads()[pad];
+	BoostPadState state = boostPad->GetState();
+	state.isActive = active;
+	state.cooldown = active ? 0 : cooldown;
+	boostPad->SetState(state);
 }
 }

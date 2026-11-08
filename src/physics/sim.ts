@@ -34,6 +34,25 @@ export interface Controls {
   handbrake: boolean
 }
 
+/** A body to put somewhere, in scene space (metres, m/s, rad/s remapped like the replay's). */
+export interface BodyState {
+  pos: Vector3
+  quat: Quaternion
+  vel: Vector3
+  spin: Vector3
+}
+
+/** A car to put somewhere: its body, its boost, what it has used since it left the ground, or off the pitch. */
+export interface CarState extends BodyState {
+  boost: number
+  jumped: boolean
+  doubleJumped: boolean
+  flipped: boolean
+  /** Seconds since its jump. */
+  sinceJump: number
+  off: boolean
+}
+
 export const IDLE: Controls = { throttle: 0, steer: 0, pitch: 0, yaw: 0, roll: 0, jump: false, boost: false, handbrake: false }
 
 const basis = new Matrix4()
@@ -50,6 +69,8 @@ export class Sim {
   private previous = new Float32Array(0)
   private current = new Float32Array(0)
   private pointer = 0
+  /** Room for one state going in: a body, then a car's extras. */
+  private input = 0
 
   private constructor(private wasm: RocketSimModule) {}
 
@@ -66,6 +87,7 @@ export class Sim {
     }
     wasm._rs_init()
     const sim = new Sim(wasm)
+    sim.input = wasm._malloc(32 * 4)
     sim.pads = wasm._rs_pad_count()
     sim.resize()
     return sim
@@ -102,6 +124,54 @@ export class Sim {
     this.read()
   }
 
+  setBall(state: BodyState) {
+    this.write(0, state)
+    this.wasm._rs_set_ball(this.input)
+    this.read()
+  }
+
+  setCar(index: number, state: CarState) {
+    this.write(0, state)
+    this.wasm.HEAPF32.set([state.boost, +state.jumped, +state.doubleJumped, +state.flipped, state.sinceJump, +state.off], this.input / 4 + BODY)
+    this.wasm._rs_set_car(index, this.input)
+  }
+
+  /** Brings the state read back in line after setting cars, without a tick in between. */
+  settle() {
+    this.read()
+    this.previous.set(this.current)
+  }
+
+  /** The arena tick when the car last touched the ball, or -1. */
+  touched(index: number) {
+    return this.wasm._rs_car_touched(index)
+  }
+
+  get tick() {
+    return this.wasm._rs_tick()
+  }
+
+  padCount() {
+    return this.pads
+  }
+
+  /** Each pad's position in scene space and whether it's big. */
+  padPlaces() {
+    const out = this.wasm._malloc(this.pads * 16)
+    this.wasm._rs_pads(out)
+    const raw = this.wasm.HEAPF32.slice(out / 4, out / 4 + this.pads * 4)
+    this.wasm._free(out)
+    return Array.from({ length: this.pads }, (_, i) => ({ pos: new Vector3(raw[i * 4] * UU, raw[i * 4 + 2] * UU, raw[i * 4 + 1] * UU), big: raw[i * 4 + 3] > 0 }))
+  }
+
+  padUp(index: number) {
+    return this.current[BODY + this.cars * CAR + index] > 0
+  }
+
+  setPad(index: number, up: boolean, cooldown: number) {
+    this.wasm._rs_set_pad(index, +up, cooldown)
+  }
+
   goals(): [number, number] {
     return [this.wasm._rs_goals(0), this.wasm._rs_goals(1)]
   }
@@ -135,6 +205,19 @@ export class Sim {
     orientation(this.previous, offset, turned)
     orientation(this.current, offset, rotation)
     rotation.slerpQuaternions(turned, rotation, alpha)
+  }
+
+  /** A body's state into the input buffer at `offset` floats, in the game's units. */
+  private write(offset: number, state: BodyState) {
+    const at = this.input / 4 + offset
+    const heap = this.wasm.HEAPF32
+    const game = (v: Vector3, scale: number, i: number) => heap.set([v.x * scale, v.z * scale, v.y * scale], at + i)
+    game(state.pos, 100, 0)
+    game(forward.set(1, 0, 0).applyQuaternion(state.quat), 1, 3)
+    game(right.set(0, 0, 1).applyQuaternion(state.quat), 1, 6)
+    game(up.set(0, 1, 0).applyQuaternion(state.quat), 1, 9)
+    game(state.vel, 100, 12)
+    game(state.spin, 1, 15)
   }
 
   private resize() {

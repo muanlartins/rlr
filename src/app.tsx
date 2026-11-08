@@ -9,7 +9,9 @@ import type { View } from "./scene/cameras"
 import { TEAMS } from "./scene/field"
 import { Scene } from "./scene/scene"
 import { Announcer } from "./ui/announcer"
-import { Choice, Group } from "./ui/controls"
+import { ArrowIcon, BoardIcon, CircleIcon, ClearIcon, FullScreenIcon, OrbitIcon, OverheadIcon, PenIcon, StudioIcon } from "./ui/icons"
+import { PlayFromHere, Segment, ToolButton } from "./ui/toolbar"
+import { PlayPage, type From } from "./play/play"
 import { BoostGauge } from "./ui/boost"
 import { Scoreboard } from "./ui/scoreboard"
 import { LibraryButtons, LibraryList, MatchPicker, PlayList, playName, playsOf, type Library } from "./studio/library"
@@ -36,6 +38,8 @@ export function App() {
   /** Recording shorts: the day's plays, best first, and the one on screen. */
   const [short, setShort] = useState<{ live: Live; plays: Play[]; play: Play }>()
   const [finding, setFinding] = useState<string>()
+  /** Playing a replay's moment as one of its players. */
+  const [playing, setPlaying] = useState<From>()
 
   const open = useCallback(async (bytes: Promise<ArrayBuffer>, name: string) => {
     setState({ status: "loading", name })
@@ -111,6 +115,13 @@ export function App() {
     }
   }, [open])
 
+  if (playing) {
+    const back = () => {
+      setResume(playing.time)
+      setPlaying(undefined)
+    }
+    return <PlayPage from={playing} onClose={back} />
+  }
   if (board) {
     const close = () => {
       history.replaceState(null, "", `${location.pathname}${location.search}`)
@@ -136,7 +147,8 @@ export function App() {
         />
       ),
     }
-    return <Player key={state.replay.name} replay={state.replay} at={resume} onBoard={openBoard} vod={vod} onVod={setVod} picker={short ? undefined : picker} short={shortProps} />
+    const playMoment = (time: number, car: number) => setPlaying({ replay: state.replay, time: inPlay(state.replay, time), car })
+    return <Player key={state.replay.name} replay={state.replay} at={resume} onBoard={openBoard} onPlay={playMoment} vod={vod} onVod={setVod} picker={short ? undefined : picker} short={shortProps} />
   }
   return (
     <main className="relative grid h-screen place-items-center bg-[#050a1a] text-[#f4f5f7]">
@@ -196,6 +208,14 @@ export function App() {
   )
 }
 
+/** `time`, or if the ball isn't on the pitch then (a goal being celebrated, the game's goal replay), the next kickoff. */
+function inPlay(replay: Replay, time: number) {
+  let { frame } = momentAt(replay.times, time)
+  if (replay.ball.present[frame]) return time
+  while (frame < replay.times.length - 1 && !replay.ball.present[frame]) frame++
+  return replay.times[frame]
+}
+
 const isVideo = (file: File) => file.type.startsWith("video/") || /\.(mp4|mkv|mov|webm)$/i.test(file.name)
 
 /** The author's site, in the language of the domain RLR is served from (English elsewhere). */
@@ -217,6 +237,7 @@ function Player({
   replay,
   at,
   onBoard,
+  onPlay,
   vod,
   onVod,
   picker,
@@ -225,6 +246,8 @@ function Player({
   replay: Replay
   at?: number
   onBoard: (time: number) => void
+  /** Plays on from a moment as one of the players. */
+  onPlay: (time: number, car: number) => void
   vod?: File
   onVod: (file: File) => void
   picker?: ReactNode
@@ -333,6 +356,11 @@ function Player({
         c: () => setTool((current) => (current === "circle" ? undefined : "circle")),
         x: () => setStrokes([]),
         Escape: () => setTool(undefined),
+        j: () => {
+          if (view.kind !== "player") return
+          playback.set({ playing: false })
+          onPlay(playback.time, view.car)
+        },
       }
       replay.cars.forEach((_, index) => (keys[String(index + 1)] = () => follow(index)))
       const action = keys[event.key]
@@ -342,7 +370,7 @@ function Player({
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [replay, playback, follow])
+  }, [replay, playback, follow, view, onPlay])
 
   useEffect(() => setView((current) => (current.kind === "player" ? { ...current, ballCam } : current)), [ballCam])
 
@@ -374,7 +402,7 @@ function Player({
 
       {shown === "3d" && (
         <div className="pointer-events-none absolute inset-x-0 top-0 p-4">
-          <Scoreboard replay={replay} playback={playback} />
+          <Scoreboard replay={replay} playback={playback} followed={view.kind === "player" ? view.car : undefined} onFollow={follow} />
         </div>
       )}
 
@@ -406,67 +434,83 @@ function Player({
       )}
     </>
   )
+  const playFrom = (car: number) => {
+    playback.set({ playing: false })
+    onPlay(playback.time, car)
+  }
+  const tools = { pen: { icon: <PenIcon />, name: "Pen", key: "P" }, arrow: { icon: <ArrowIcon />, name: "Arrow", key: "A" }, circle: { icon: <CircleIcon />, name: "Circle", key: "C" } } as const
+  // Under the timeline: how to look (the players themselves are up top), what to draw, and what to do with the moment.
   const controls = (
-    <div className="flex flex-wrap items-center gap-2 text-[12px]">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px]">
       {picker}
-      <Group>
-        <Choice active={view.kind === "free"} onClick={() => setView({ kind: "free" })}>Free</Choice>
-        <Choice active={view.kind === "overhead"} onClick={() => setView({ kind: "overhead" })}>Overhead</Choice>
-        {replay.cars.map((car, index) => (
-          <Choice key={car.id} active={view.kind === "player" && view.car === index} onClick={() => follow(index)}>
-            <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ background: TEAMS[car.team].color }} />
-            {car.name}
-          </Choice>
-        ))}
-      </Group>
+      <Segment>
+        <ToolButton active={view.kind === "free"} onClick={() => setView({ kind: "free" })} hint="Free camera: drag to orbit, scroll to zoom (0)">
+          <OrbitIcon />
+          Free
+        </ToolButton>
+        <ToolButton active={view.kind === "overhead"} onClick={() => setView({ kind: "overhead" })} hint="Overhead (9)">
+          <OverheadIcon />
+          Overhead
+        </ToolButton>
+      </Segment>
       {view.kind === "player" && (
-        <Group>
+        <Segment>
           {(Object.keys(CAMS) as (keyof typeof CAMS)[]).map((mode) => (
-            <Choice key={mode} active={ballCam === mode} onClick={() => setBallCam(mode)}>
+            <ToolButton key={mode} active={ballCam === mode} onClick={() => setBallCam(mode)} hint={CAMS[mode]}>
               {CAMS[mode]}
               {mode === "theirs" && <TheirCam car={replay.cars[view.car]} replay={replay} playback={playback} />}
-            </Choice>
+            </ToolButton>
           ))}
-        </Group>
+        </Segment>
       )}
-      <Group>
-        {(["pen", "arrow", "circle"] as const).map((name) => (
-          <Choice key={name} active={tool === name} onClick={() => setTool(tool === name ? undefined : name)}>
-            {name === "pen" ? "Pen" : name === "arrow" ? "Arrow" : "Circle"}
-          </Choice>
+      <span className="h-5 w-px bg-white/10" />
+      <Segment>
+        {(Object.keys(tools) as (keyof typeof tools)[]).map((name) => (
+          <ToolButton key={name} active={tool === name} onClick={() => setTool(tool === name ? undefined : name)} hint={`${tools[name].name} (${tools[name].key})`}>
+            {tools[name].icon}
+          </ToolButton>
         ))}
-        {INKS.map((color) => (
-          <button
-            key={color}
-            onClick={() => setInk(color)}
-            className="mx-1 h-4 w-4 rounded-full border-2"
-            style={{ background: color, borderColor: color === ink ? "#fff" : "transparent" }}
-            aria-label={`Ink ${color}`}
-          />
-        ))}
-        <Choice active={false} onClick={() => setStrokes([])}>Clear</Choice>
-      </Group>
-      <Group>
-        <Choice
-          active={false}
+        <span className="flex items-center gap-1.5 px-2">
+          {INKS.map((color) => (
+            <button
+              key={color}
+              onClick={() => setInk(color)}
+              className="h-3.5 w-3.5 rounded-full ring-offset-2 ring-offset-[#0b1430] transition-shadow"
+              style={{ background: color, boxShadow: color === ink ? `0 0 0 2px #0b1430, 0 0 0 3.5px ${color}` : undefined }}
+              aria-label={`Ink ${color}`}
+            />
+          ))}
+        </span>
+        <ToolButton onClick={() => setStrokes([])} hint="Clear the drawing (X)">
+          <ClearIcon />
+        </ToolButton>
+      </Segment>
+      <div className="ml-auto flex items-center gap-1">
+        <ToolButton
           onClick={() => {
             playback.set({ playing: false })
             onBoard(playback.time)
           }}
+          hint="Open this moment on the tactics board"
         >
-          Open this moment on the board
-        </Choice>
+          <BoardIcon />
+          Board
+        </ToolButton>
         {!studio && (
-          <Choice active={false} onClick={() => openStudio(true)}>
+          <ToolButton onClick={() => openStudio(true)} hint="The studio: the stream's recording alongside">
+            <StudioIcon />
             Studio
-          </Choice>
+          </ToolButton>
         )}
         {studioOn && !short && !fullScreen && (
-          <Choice active={false} onClick={() => void document.documentElement.requestFullscreen()}>
-            Full screen
-          </Choice>
+          <ToolButton onClick={() => void document.documentElement.requestFullscreen()} hint="Full screen">
+            <FullScreenIcon />
+          </ToolButton>
         )}
-      </Group>
+        <span className="ml-2">
+          <PlayFromHere replay={replay} followed={view.kind === "player" ? view.car : undefined} onPlay={playFrom} />
+        </span>
+      </div>
     </div>
   )
 
@@ -486,8 +530,9 @@ function Player({
           {short.list}
           <div className="space-y-2 [&>*]:pointer-events-auto">
             {bar}
-            {controls}
-            <Timeline replay={replay} playback={playback} range={range} ticks={ticks} />
+            <Timeline replay={replay} playback={playback} range={range} ticks={ticks}>
+              {controls}
+            </Timeline>
           </div>
         </aside>
       </main>
@@ -507,8 +552,9 @@ function Player({
       >
         {gauge}
         {bar}
-        {controls}
-        <Timeline replay={replay} playback={playback} range={range} ticks={ticks} />
+        <Timeline replay={replay} playback={playback} range={range} ticks={ticks}>
+          {controls}
+        </Timeline>
       </div>
     </main>
   )

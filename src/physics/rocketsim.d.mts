@@ -17,6 +17,9 @@ export interface RocketSimModule {
   _rs_pads(out: number): void
   _rs_set_ball(state: number): void
   _rs_set_car(car: number, state: number): void
+  _rs_car_touched(car: number): number
+  _rs_tick(): number
+  _rs_set_pad(pad: number, active: number, cooldown: number): void
 }
 
 export default function createModule(options?: { locateFile?: (path: string) => string }): Promise<RocketSimModule>
