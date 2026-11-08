@@ -9,6 +9,7 @@ import { Arena } from "../scene/arena"
 import { Follow, type Track } from "../scene/cameras"
 import { BALL_RADIUS, TEAMS } from "../scene/field"
 import { useCarModel } from "../scene/car"
+import type { CameraSettings } from "../replay/model"
 import { BoostGauge } from "../ui/boost"
 
 const BALL_MODEL = `${import.meta.env.BASE_URL}models/ball.glb`
@@ -16,6 +17,8 @@ const BALL_MODEL = `${import.meta.env.BASE_URL}models/ball.glb`
 const MAX_TICKS = 12
 const WHEEL_RADIUS = 0.17
 const LOCK = 0.45
+/** Luan's camera, from his replays. */
+const CAMERA: CameraSettings = { fov: 110, height: 100, angle: -3, distance: 270, stiffness: 0.35, swivel: 4.7 }
 
 /** What the HUD shows, copied out of the simulation a few times a second. */
 interface Hud {
@@ -156,7 +159,7 @@ function World({ sim, input, onHud }: { sim: Sim; input: Input; onHud: (hud: Hud
   const track: Track = (at, rotation, ballAt) => {
     sim.car(0, clock.current.owed, at, rotation)
     sim.ball(clock.current.owed, ballAt, turn)
-    return { ballCam: clock.current.ballCam }
+    return { settings: CAMERA, ballCam: clock.current.ballCam }
   }
 
   return (

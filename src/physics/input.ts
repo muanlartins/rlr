@@ -11,7 +11,7 @@ const A = 0, B = 1, X = 2, Y = 3, LB = 4, RB = 5, LT = 6, RT = 7, BACK = 8, STAR
 
 export const HELP = {
   pad: "RT/LT drive · A jump · B boost · X powerslide and air roll · LB/RB air roll · Y ball cam · Start resets",
-  keys: "W/S drive · A/D steer · Space or right click jump · Shift or left click boost · C powerslide · Q/E air roll · B ball cam · R resets",
+  keys: "W/S drive · A/D steer · right click jump · left click boost · Left Shift powerslide and air roll · Q/E air roll · Space ball cam · R resets",
 }
 
 const stick = (value: number) => (Math.abs(value) < DEADZONE ? 0 : (value - Math.sign(value) * DEADZONE) / (1 - DEADZONE))
@@ -30,7 +30,7 @@ export class Input {
     if (event.repeat) return
     this.device = "keys"
     this.keys.add(event.code)
-    if (event.code === "KeyB") this.ballCam++
+    if (event.code === "Space") this.ballCam++
     if (event.code === "KeyR") this.reset++
     if (event.code === "Space") event.preventDefault()
   }
@@ -102,7 +102,8 @@ export class Input {
     const axis = (minus: boolean, plus: boolean) => (plus ? 1 : 0) - (minus ? 1 : 0)
     const forward = axis(key("KeyS", "ArrowDown"), key("KeyW", "ArrowUp"))
     const turn = axis(key("KeyA", "ArrowLeft"), key("KeyD", "ArrowRight"))
-    const freeRoll = key("KeyC")
+    // The game's default keyboard: Left Shift is powerslide on the ground and free air roll in the air.
+    const freeRoll = key("ShiftLeft")
     if (!this.keys.size && !this.mouse.size) return IDLE
     return {
       throttle: forward,
@@ -111,8 +112,8 @@ export class Input {
       pitch: -forward,
       yaw: freeRoll ? 0 : turn,
       roll: freeRoll ? turn : axis(key("KeyQ"), key("KeyE")),
-      jump: key("Space") || this.mouse.has(2),
-      boost: key("ShiftLeft", "ShiftRight") || this.mouse.has(0),
+      jump: this.mouse.has(2),
+      boost: this.mouse.has(0),
       handbrake: freeRoll,
     }
   }

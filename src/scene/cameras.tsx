@@ -23,6 +23,7 @@ const ahead = new Vector3()
 const goal = new Vector3()
 const look = new Vector3()
 const up = new Vector3(0, 1, 0)
+const at = new Vector3()
 
 /**
  * Where the followed car and the ball are, written into `car`, `rotation`
@@ -82,6 +83,7 @@ export function Orbit({ overhead, still }: { overhead: boolean; still?: boolean 
 /** Behind a car, with its player's camera settings, like the game. */
 export function Follow({ track }: { track: Track }) {
   const camera = useThree((state) => state.camera) as PerspectiveCamera
+  /** Where the camera looks, as a direction. */
   const aim = useRef(new Vector3())
 
   useFrame((_, delta) => {
@@ -101,10 +103,16 @@ export function Follow({ track }: { track: Track }) {
     goal.y = Math.max(goal.y, 0.3)
     const follow = 1 - Math.exp(-(4 + settings.stiffness * 20) * delta)
     camera.position.lerp(goal, follow)
-    look.copy(car).addScaledVector(ahead, 3).addScaledVector(up, Math.tan(MathUtils.degToRad(-settings.angle)) * 3)
-    if (ballCam) look.lerp(ball, 0.5)
-    aim.current.lerp(look, 1 - Math.exp(-settings.swivel * 2 * delta))
-    camera.lookAt(aim.current)
+    // Car cam looks along the heading, tilted by the preset's angle; ball cam looks at the ball. The look turns
+    // at the preset's swivel speed.
+    if (ballCam) look.subVectors(ball, camera.position).normalize()
+    else {
+      const tilt = MathUtils.degToRad(settings.angle)
+      look.copy(ahead).multiplyScalar(Math.cos(tilt)).addScaledVector(up, Math.sin(tilt))
+    }
+    if (aim.current.lengthSq() === 0) aim.current.copy(look)
+    aim.current.lerp(look, 1 - Math.exp(-settings.swivel * 2 * delta)).normalize()
+    camera.lookAt(at.copy(camera.position).add(aim.current))
     // The game's field of view is horizontal; three's is vertical.
     const fov = MathUtils.radToDeg(2 * Math.atan(Math.tan(MathUtils.degToRad(settings.fov) / 2) / camera.aspect))
     if (Math.abs(camera.fov - fov) > 0.01) {
