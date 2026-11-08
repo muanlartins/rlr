@@ -11,7 +11,8 @@ import {
 } from "./model"
 
 interface Vec { x: number; y: number; z: number }
-interface RigidBody { location: Vec; rotation: Vec & { w: number }; linear_velocity: Vec | null }
+/** Velocities as the game sends them: linear in uu/s, angular in hundredths of a radian a second. */
+interface RigidBody { location: Vec; rotation: Vec & { w: number }; linear_velocity: Vec | null; angular_velocity: Vec | null }
 type Frame<T> = "Empty" | { Data: T }
 interface PlayerState {
   rigid_body: RigidBody
@@ -142,6 +143,7 @@ function track(count: number, bodies: (RigidBody | undefined)[]): Track {
   const pos = new Float32Array(count * 3)
   const quat = new Float32Array(count * 4)
   const vel = new Float32Array(count * 3)
+  const spin = new Float32Array(count * 3)
   const present = new Uint8Array(count)
   quat[3] = 1
   for (let i = 0; i < count; i++) {
@@ -154,12 +156,13 @@ function track(count: number, bodies: (RigidBody | undefined)[]): Track {
       continue
     }
     present[i] = 1
-    const { location: l, rotation: r, linear_velocity: v } = body
+    const { location: l, rotation: r, linear_velocity: v, angular_velocity: w } = body
     pos.set([l.x * UU, l.z * UU, l.y * UU], i * 3)
     quat.set([r.x, r.z, r.y, -r.w], i * 4)
     if (v) vel.set([v.x * UU, v.z * UU, v.y * UU], i * 3)
+    if (w) spin.set([w.x / 100, w.z / 100, w.y / 100], i * 3)
   }
-  return { pos, quat, vel, present }
+  return { pos, quat, vel, spin, present }
 }
 
 /** The kickoffs: each run of frames where the game counts down. */

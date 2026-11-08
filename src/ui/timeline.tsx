@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { usePlayback, type Playback } from "../playback"
 import type { Replay } from "../replay/model"
 import { momentAt } from "../replay/sample"
@@ -14,14 +15,16 @@ export interface Tick {
 /**
  * Play, pause, speed, and a scrubber marked with the goals and demos; in the
  * studio also with the play being looked at (`range`) and Luan's own moments (`ticks`).
+ * `children` is a toolbar under it, in the same panel.
  */
-export function Timeline({ replay, playback, range, ticks = [] }: { replay: Replay; playback: Playback; range?: [number, number]; ticks?: Tick[] }) {
+export function Timeline({ replay, playback, range, ticks = [], children }: { replay: Replay; playback: Playback; range?: [number, number]; ticks?: Tick[]; children?: ReactNode }) {
   usePlayback(playback)
   const { start, end, time, playing, speed } = playback
   const at = (seconds: number) => `${((seconds - start) / (end - start)) * 100}%`
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#0b1430]/85 px-3 py-2 backdrop-blur">
+    <div className="rounded-2xl border border-white/10 bg-[#0b1430]/85 backdrop-blur">
+    <div className="flex items-center gap-3 px-3 py-2">
       <button
         onClick={() => playback.set({ playing: !playing })}
         className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#f4f5f7] text-[#002fa7]"
@@ -88,6 +91,8 @@ export function Timeline({ replay, playback, range, ticks = [] }: { replay: Repl
           </button>
         ))}
       </div>
+    </div>
+    {children && <div className="border-t border-white/10 px-3 py-2">{children}</div>}
     </div>
   )
 }
