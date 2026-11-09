@@ -39,9 +39,17 @@ Drawings are for the paused moment: playing on clears them.
 
 "Play from here" (J) takes the car of the player you follow at the paused moment and hands it to you, on
 [RocketSim](https://github.com/ZealanL/RocketSim), Rocket League's physics rebuilt from the outside, with a
-gamepad (the game's default layout) or the keyboard. The others play the replay back, and the ball follows
-it until you touch it: from then on the play is yours. It waits for your first input; R (Start on a pad)
-tries the same moment again. `?play` is free play: one car, the ball, unlimited boost.
+controller or the keyboard. The others play the replay back, and the ball follows it until you touch it:
+from then on the play is yours. R (Start on a controller) tries the same moment again.
+
+A goal's marker on the timeline opens it: watch it from 5 s before, save it as one of the team that
+conceded, or score it again as one of the scorers. Then each try says how it went ("Saved!", "Conceded")
+and keeps count.
+
+While playing: the game's speed (100% down to 25%), the start (a 2 s run-up of the replay, or still until
+your first input), your car's ghost from the match to compare with, unlimited boost, and the controls (any
+button or key, the stick's deadzone, inverted pitch; kept in the browser). `?play` is free play: one car,
+the ball, unlimited boost.
 
 ## The board
 

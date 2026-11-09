@@ -34,8 +34,8 @@ the game's. Read `README.md` for what it does and the credits.
 | `src/ui/*` | Timeline (with the toolbar under it), scoreboard (its players are also the camera switch), announcer, drawing, icons, buttons |
 | `src/studio/*` | The studio: the stream's recording in step with the replay, marks, OBS |
 | `src/board/*` | The tactics board: its model (pieces, pads, marks, the link format), the page, and what goes on the pitch |
-| `src/physics/*` | RocketSim in the browser: `sim.ts` over the wasm, `arena-mesh.ts` (our walls for it), `input.ts` (gamepad, keyboard) |
-| `src/play/*` | Playing on the physics: a replay's moment as one of its players (`rewind.ts` turns the moment into the physics' state), or free play (`?play`) |
+| `src/physics/*` | RocketSim in the browser: `sim.ts` over the wasm, `arena-mesh.ts` (our walls for it), `input.ts` (controller, keyboard) by `bindings.ts` (`rlr:controls`) |
+| `src/play/*` | Playing on the physics: `session.ts` (a try: run-up, hand-over, judging the play's goal, the tally; no React), `rewind.ts` (a replay's moment as the physics' state), `play.tsx` (the page, its options in `rlr:play`), `controls-sheet.tsx` |
 | `physics/` | `build.sh` builds RocketSim and `rlr_sim.cpp` (its C interface) into `src/physics/rocketsim.{mjs,wasm}` |
 | `tools/models.mjs` | `pnpm models`: builds `public/models` from the sources |
 
@@ -107,8 +107,13 @@ the game's. Read `README.md` for what it does and the credits.
   the physics. A car the replay has nothing for is taken off the pitch (demolished, parked outside the
   walls). What your car has used in the air comes from the replay's jump flags (`carAt`); pads from the
   replay's pickups. A moment with no ball (a goal being celebrated) starts at the next kickoff, and a
-  kickoff's countdown holds your car until the go. Angular velocity is in the replay in hundredths of a
+  kickoff's countdown holds your car until the go. With the run-up, the replay plays 2 s (less if a goal or
+  the recording's start is closer) with your car on it too, then hands it over; touches before the hand-over
+  don't count as yours. A play's goal is the one given (from the timeline's goal menu) or the replay's next
+  within 10 s: saving it means no goal by that team until 1 s past its time in the replay. Angular velocity is in the replay in hundredths of a
   radian a second; `Track.spin` is rad/s, remapped like positions.
+- Mouse buttons are inputs (left boost, right jump, the game's defaults), so the play page's own buttons
+  and panels carry `data-ui`, which `Input` ignores: React's `stopPropagation` can't stop its native listener.
 
 ## The board
 

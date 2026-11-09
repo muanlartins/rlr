@@ -3,7 +3,7 @@ import { BoardPage, savedBoard } from "./board/board"
 import { decode, fromReplay, kickoff, type Board } from "./board/model"
 import { Playback, usePlayback } from "./playback"
 import { loadReplay } from "./replay/load"
-import { BALL_CAM, type Car, type Replay } from "./replay/model"
+import { BALL_CAM, type Car, type Goal, type Replay } from "./replay/model"
 import { gaps, momentAt } from "./replay/sample"
 import type { View } from "./scene/cameras"
 import { TEAMS } from "./scene/field"
@@ -20,7 +20,7 @@ import type { Play } from "./studio/plays"
 import { StudioBar, StudioVideo, useLineUp, useSync, type Screen } from "./studio/studio"
 import { toReplay } from "./studio/sync"
 import { INKS, Sketch, type Stroke, type Tool } from "./ui/sketch"
-import { Timeline } from "./ui/timeline"
+import { GOAL_LEAD, Timeline } from "./ui/timeline"
 
 type State = { status: "empty" } | { status: "loading"; name: string } | { status: "error"; message: string } | { status: "ready"; replay: Replay }
 
@@ -147,7 +147,7 @@ export function App() {
         />
       ),
     }
-    const playMoment = (time: number, car: number) => setPlaying({ replay: state.replay, time: inPlay(state.replay, time), car })
+    const playMoment = (time: number, car: number, goal?: Goal) => setPlaying({ replay: state.replay, time: inPlay(state.replay, time), car, goal })
     return <Player key={state.replay.name} replay={state.replay} at={resume} onBoard={openBoard} onPlay={playMoment} vod={vod} onVod={setVod} picker={short ? undefined : picker} short={shortProps} />
   }
   return (
@@ -246,8 +246,8 @@ function Player({
   replay: Replay
   at?: number
   onBoard: (time: number) => void
-  /** Plays on from a moment as one of the players. */
-  onPlay: (time: number, car: number) => void
+  /** Plays on from a moment as one of the players, maybe for one goal (to save it or score it again). */
+  onPlay: (time: number, car: number, goal?: Goal) => void
   vod?: File
   onVod: (file: File) => void
   picker?: ReactNode
@@ -434,6 +434,10 @@ function Player({
       )}
     </>
   )
+  const playGoal = (goal: Goal, car: number) => {
+    playback.set({ playing: false })
+    onPlay(goal.time - GOAL_LEAD, car, goal)
+  }
   const playFrom = (car: number) => {
     playback.set({ playing: false })
     onPlay(playback.time, car)
@@ -530,7 +534,7 @@ function Player({
           {short.list}
           <div className="space-y-2 [&>*]:pointer-events-auto">
             {bar}
-            <Timeline replay={replay} playback={playback} range={range} ticks={ticks}>
+            <Timeline replay={replay} playback={playback} range={range} ticks={ticks} onPlayGoal={playGoal}>
               {controls}
             </Timeline>
           </div>
@@ -552,7 +556,7 @@ function Player({
       >
         {gauge}
         {bar}
-        <Timeline replay={replay} playback={playback} range={range} ticks={ticks}>
+        <Timeline replay={replay} playback={playback} range={range} ticks={ticks} onPlayGoal={playGoal}>
           {controls}
         </Timeline>
       </div>
