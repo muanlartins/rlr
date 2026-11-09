@@ -35,7 +35,7 @@ the game's. Read `README.md` for what it does and the credits.
 | `src/studio/*` | The studio: the stream's recording in step with the replay, marks, OBS |
 | `src/board/*` | The tactics board: its model (pieces, pads, marks, the link format), the page, and what goes on the pitch |
 | `src/physics/*` | RocketSim in the browser: `sim.ts` over the wasm, `arena-mesh.ts` (our walls for it), `input.ts` (controller, keyboard) by `bindings.ts` (`rlr:controls`) |
-| `src/play/*` | Playing on the physics: `session.ts` (a try: run-up, hand-over, judging the play's goal, the tally; no React), `rewind.ts` (a replay's moment as the physics' state), `play.tsx` (the page, its options in `rlr:play`), `controls-sheet.tsx` |
+| `src/play/*` | Playing on the physics: `session.ts` (a try: run-up, hand-over, judging the play's goal, the tally; no React), `rewind.ts` (a replay's moment as the physics' state), `play.tsx` (the page, its options in `rlr:play-options`; Still is the default start), `controls-sheet.tsx` |
 | `physics/` | `build.sh` builds RocketSim and `rlr_sim.cpp` (its C interface) into `src/physics/rocketsim.{mjs,wasm}` |
 | `tools/models.mjs` | `pnpm models`: builds `public/models` from the sources |
 
