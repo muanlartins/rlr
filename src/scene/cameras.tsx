@@ -24,6 +24,9 @@ const goal = new Vector3()
 const look = new Vector3()
 const up = new Vector3(0, 1, 0)
 const at = new Vector3()
+const lift = new Vector3()
+/** How far ball cam's orbit tilts down (ball below the car) and up (ball above it), in radians. */
+const PITCH = [-0.35, 1.0] as const
 
 /**
  * Where the followed car and the ball are, written into `car`, `rotation`
@@ -92,29 +95,33 @@ export function Follow({ track }: { track: Track }) {
     const settings = followed.settings ?? DEFAULT_CAMERA
     const { ballCam } = followed
 
-    // Ball cam looks from behind the car towards the ball; car cam along the car's heading.
+    // The camera orbits the car, as the game's does: car cam along the car's heading, level; ball cam along the
+    // line from the car to the ball, rising and falling with it (within PITCH), so the car always stays between
+    // the camera and the ball, a little below the middle of the picture. The orbit turns at the swivel speed.
     if (ballCam) ahead.subVectors(ball, car)
     else ahead.set(1, 0, 0).applyQuaternion(rotation)
+    const rise = ballCam ? Math.atan2(ahead.y, Math.hypot(ahead.x, ahead.z)) : 0
     ahead.y = 0
     if (ahead.lengthSq() < 1e-6) ahead.set(0, 0, 1)
     ahead.normalize()
+    const pitch = MathUtils.clamp(rise, PITCH[0], PITCH[1])
+    look.copy(ahead).multiplyScalar(Math.cos(pitch)).addScaledVector(up, Math.sin(pitch))
 
-    goal.copy(car).addScaledVector(ahead, -settings.distance * UU).addScaledVector(up, settings.height * UU)
+    // A jump (a seek, a try starting again) puts the camera straight behind the car instead of flying there.
+    const jumped = camera.position.distanceTo(car) > 25 || aim.current.lengthSq() === 0
+    if (jumped) aim.current.copy(look)
+    aim.current.lerp(look, 1 - Math.exp(-settings.swivel * 2 * delta)).normalize()
+
+    // The orbit's own up: square to where it looks, on the side of the sky.
+    lift.copy(up).addScaledVector(aim.current, -aim.current.dot(up)).normalize()
+    goal.copy(car).addScaledVector(aim.current, -settings.distance * UU).addScaledVector(lift, settings.height * UU)
     goal.y = Math.max(goal.y, 0.3)
     const follow = 1 - Math.exp(-(4 + settings.stiffness * 20) * delta)
-    // A jump (a seek, a try starting again) puts the camera straight behind the car instead of flying there.
-    const jumped = camera.position.distanceTo(goal) > 25
     camera.position.lerp(goal, jumped ? 1 : follow)
-    // Car cam looks along the heading, tilted by the preset's angle; ball cam looks at the ball. The look turns
-    // at the preset's swivel speed.
-    if (ballCam) look.subVectors(ball, camera.position).normalize()
-    else {
-      const tilt = MathUtils.degToRad(settings.angle)
-      look.copy(ahead).multiplyScalar(Math.cos(tilt)).addScaledVector(up, Math.sin(tilt))
-    }
-    if (aim.current.lengthSq() === 0 || jumped) aim.current.copy(look)
-    aim.current.lerp(look, 1 - Math.exp(-settings.swivel * 2 * delta)).normalize()
-    camera.lookAt(at.copy(camera.position).add(aim.current))
+    // It looks along the orbit, tilted by the preset's angle.
+    const tilt = MathUtils.degToRad(settings.angle)
+    at.copy(aim.current).multiplyScalar(Math.cos(tilt)).addScaledVector(lift, Math.sin(tilt)).add(camera.position)
+    camera.lookAt(at)
     // The game's field of view is horizontal; three's is vertical.
     const fov = MathUtils.radToDeg(2 * Math.atan(Math.tan(MathUtils.degToRad(settings.fov) / 2) / camera.aspect))
     if (Math.abs(camera.fov - fov) > 0.01) {
