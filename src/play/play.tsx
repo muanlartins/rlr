@@ -36,8 +36,9 @@ interface Options {
   /** Your car as it went in the match, see-through, to compare with. */
   ghost: boolean
 }
-const SAVED = "rlr:play"
-const DEFAULT_OPTIONS: Options = { speed: 1, runUp: true, ghost: true }
+/** A new key since Still became the default, so choices saved under the old default don't keep the run-up on. */
+const SAVED = "rlr:play-options"
+const DEFAULT_OPTIONS: Options = { speed: 1, runUp: false, ghost: true }
 
 function loadOptions(): Options {
   try {
@@ -172,11 +173,11 @@ export function PlayPage({ from, onClose }: { from?: From; onClose: () => void }
         {from && (
           <>
             <Options label="Start">
-              <Option active={options.runUp} onClick={() => change({ runUp: true })} hint="The replay runs 2 s up to the moment, then hands you the car">
-                Run-up
-              </Option>
               <Option active={!options.runUp} onClick={() => change({ runUp: false })} hint="The moment waits, still, for your first input">
                 Still
+              </Option>
+              <Option active={options.runUp} onClick={() => change({ runUp: true })} hint="The replay runs 2 s up to the moment, then hands you the car">
+                Run-up
               </Option>
             </Options>
             <Option active={options.ghost} onClick={() => change({ ghost: !options.ghost })} hint="Your car as it went in the match, see-through">

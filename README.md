@@ -46,8 +46,8 @@ A goal's marker on the timeline opens it: watch it from 5 s before, save it as o
 conceded, or score it again as one of the scorers. Then each try says how it went ("Saved!", "Conceded")
 and keeps count.
 
-While playing: the game's speed (100% down to 25%), the start (a 2 s run-up of the replay, or still until
-your first input), your car's ghost from the match to compare with, unlimited boost, and the controls (any
+While playing: the game's speed (100% down to 25%), the start (still until your first input, or a 2 s run-up
+of the replay), your car's ghost from the match to compare with, unlimited boost, and the controls (any
 button or key, the stick's deadzone, inverted pitch; kept in the browser). `?play` is free play: one car,
 the ball, unlimited boost.
 
