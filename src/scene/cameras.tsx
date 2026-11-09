@@ -102,7 +102,9 @@ export function Follow({ track }: { track: Track }) {
     goal.copy(car).addScaledVector(ahead, -settings.distance * UU).addScaledVector(up, settings.height * UU)
     goal.y = Math.max(goal.y, 0.3)
     const follow = 1 - Math.exp(-(4 + settings.stiffness * 20) * delta)
-    camera.position.lerp(goal, follow)
+    // A jump (a seek, a try starting again) puts the camera straight behind the car instead of flying there.
+    const jumped = camera.position.distanceTo(goal) > 25
+    camera.position.lerp(goal, jumped ? 1 : follow)
     // Car cam looks along the heading, tilted by the preset's angle; ball cam looks at the ball. The look turns
     // at the preset's swivel speed.
     if (ballCam) look.subVectors(ball, camera.position).normalize()
@@ -110,7 +112,7 @@ export function Follow({ track }: { track: Track }) {
       const tilt = MathUtils.degToRad(settings.angle)
       look.copy(ahead).multiplyScalar(Math.cos(tilt)).addScaledVector(up, Math.sin(tilt))
     }
-    if (aim.current.lengthSq() === 0) aim.current.copy(look)
+    if (aim.current.lengthSq() === 0 || jumped) aim.current.copy(look)
     aim.current.lerp(look, 1 - Math.exp(-settings.swivel * 2 * delta)).normalize()
     camera.lookAt(at.copy(camera.position).add(aim.current))
     // The game's field of view is horizontal; three's is vertical.
