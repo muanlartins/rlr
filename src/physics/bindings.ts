@@ -23,17 +23,17 @@ export interface Bindings {
 
 /** The settings' rows, in order: what each does, and its button and key (either may be missing). */
 export const ACTIONS: { name: string; pad?: PadAction; key?: KeyAction }[] = [
-  { name: "Drive", pad: "throttle", key: "forward" },
-  { name: "Reverse", pad: "reverse", key: "back" },
-  { name: "Steer left", key: "left" },
-  { name: "Steer right", key: "right" },
-  { name: "Jump", pad: "jump", key: "jump" },
+  { name: "Acelerar", pad: "throttle", key: "forward" },
+  { name: "Ré", pad: "reverse", key: "back" },
+  { name: "Virar à esquerda", key: "left" },
+  { name: "Virar à direita", key: "right" },
+  { name: "Pular", pad: "jump", key: "jump" },
   { name: "Boost", pad: "boost", key: "boost" },
-  { name: "Powerslide, free air roll", pad: "powerslide", key: "powerslide" },
-  { name: "Air roll left", pad: "rollLeft", key: "rollLeft" },
-  { name: "Air roll right", pad: "rollRight", key: "rollRight" },
+  { name: "Powerslide, air roll livre", pad: "powerslide", key: "powerslide" },
+  { name: "Air roll para a esquerda", pad: "rollLeft", key: "rollLeft" },
+  { name: "Air roll para a direita", pad: "rollRight", key: "rollRight" },
   { name: "Ball cam", pad: "ballCam", key: "ballCam" },
-  { name: "Try again", pad: "reset", key: "reset" },
+  { name: "Tentar de novo", pad: "reset", key: "reset" },
 ]
 
 /** The game's defaults, but Start tries again (there's no menu to open). */
@@ -68,16 +68,19 @@ export function saveBindings(bindings: Bindings) {
 }
 
 /** A controller button's name on an Xbox pad and a PlayStation one. */
-const PAD_NAMES = ["A / ✕", "B / ○", "X / □", "Y / △", "LB / L1", "RB / R1", "LT / L2", "RT / R2", "View / Share", "Menu / Options", "Left stick", "Right stick", "D-pad up", "D-pad down", "D-pad left", "D-pad right", "Home"]
+const PAD_NAMES = ["A / ✕", "B / ○", "X / □", "Y / △", "LB / L1", "RB / R1", "LT / L2", "RT / R2", "View / Share", "Menu / Options", "Analógico esquerdo", "Analógico direito", "D-pad cima", "D-pad baixo", "D-pad esquerda", "D-pad direita", "Home"]
 
-export const padName = (button: number) => PAD_NAMES[button] ?? `Button ${button}`
+const SIDES: Record<string, string> = { Up: "para cima", Down: "para baixo", Left: "esquerda", Right: "direita" }
+
+export const padName = (button: number) => PAD_NAMES[button] ?? `Botão ${button}`
 
 export function keyName(code: string) {
-  if (code === "Mouse0") return "Left click"
-  if (code === "Mouse2") return "Right click"
-  if (code === "Mouse1") return "Middle click"
+  if (code === "Mouse0") return "Clique esquerdo"
+  if (code === "Mouse2") return "Clique direito"
+  if (code === "Mouse1") return "Clique do meio"
   if (code.startsWith("Key")) return code.slice(3)
   if (code.startsWith("Digit")) return code.slice(5)
-  if (code.startsWith("Arrow")) return `${code.slice(5)} arrow`
-  return code.replace(/(Left|Right)$/, " ($1)").replace(/^Shift/, "Shift").replace(/^Control/, "Ctrl")
+  if (code.startsWith("Arrow")) return `Seta ${SIDES[code.slice(5)] ?? code.slice(5)}`
+  if (code === "Space") return "Espaço"
+  return code.replace(/Left$/, " (esq.)").replace(/Right$/, " (dir.)").replace(/^Control/, "Ctrl")
 }

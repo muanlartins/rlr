@@ -154,7 +154,7 @@ export class Session {
       if (bodyAt(replay, replay.ball, time, this.ball)) sim.setBall(this.ball)
       else if (ended) this.phase = "yours"
       else if (replay.goals.some((goal) => goal.time > from.time - this.lead && goal.time <= time)) {
-        return this.finish(this.defending ? { text: "Conceded, as in the replay", success: false } : { text: "As in the replay" })
+        return this.finish(this.defending ? { text: "Tomou, como no replay", success: false } : { text: "Como no replay" })
       }
     }
     // Nobody moves while a kickoff counts down: your car waits for the go with the others.
@@ -172,7 +172,7 @@ export class Session {
     if (this.judgeGoals()) return
     // Past the replay's goal and none went in: saved (or, scoring it, missed).
     if (this.target && this.phase !== "runup" && time > this.target.time + GRACE) {
-      this.finish(this.defending ? { text: "Saved!", success: true } : { text: "No goal", success: false })
+      this.finish(this.defending ? { text: "Defendeu!", success: true } : { text: "Sem gol", success: false })
     }
   }
 
@@ -182,10 +182,10 @@ export class Session {
     const scored = goals[0] > this.goals[0] ? 0 : goals[1] > this.goals[1] ? 1 : undefined
     this.goals = goals
     if (scored === undefined) return false
-    if (!this.from) this.finish({ text: "Goal" })
-    else if (!this.target) this.finish({ text: scored === this.team ? "Goal for your team" : "Goal against" })
-    else if (scored === this.team) this.finish({ text: this.defending ? "Saved, and scored!" : "Scored!", success: true })
-    else this.finish({ text: this.defending ? "Conceded" : "They scored", success: false })
+    if (!this.from) this.finish({ text: "Gol" })
+    else if (!this.target) this.finish({ text: scored === this.team ? "Gol do seu time" : "Gol do adversário" })
+    else if (scored === this.team) this.finish({ text: this.defending ? "Defendeu e marcou!" : "Marcou!", success: true })
+    else this.finish({ text: this.defending ? "Tomou o gol" : "O outro time marcou", success: false })
     return true
   }
 

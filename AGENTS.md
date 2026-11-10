@@ -14,6 +14,9 @@ the game's. Read `README.md` for what it does and the credits.
   muanlartins.com/rlr and muanlartins.com.br/rlr (`infra/site.yml` there),
   picking it up within 10 minutes; nothing to do on AWS per release. The build uses relative paths (`base: "./"`), so it
   works under any path; keep it that way.
+- The interface is in Brazilian Portuguese, the channel's language: write new labels, hints and messages in
+  pt-BR, keeping the game's words players use as they are (boost, ball cam, kickoff, free play, flip reset).
+  The code, its comments and these notes stay in English.
 - Anything kept in the browser is namespaced `rlr:`: the site may also be served
   from muanlartins.com.br/rlr, which shares its origin with Luan's site.
 - Never commit someone else's replays. `samples/` is for local testing and is
@@ -41,7 +44,7 @@ the game's. Read `README.md` for what it does and the credits.
 | `src/studio/*` | The studio: the stream's recording in step with the replay, marks, OBS |
 | `src/board/*` | The tactics board: its model (pieces, pads, marks, the link format), the page, and what goes on the pitch |
 | `src/physics/*` | RocketSim in the browser: `sim.ts` over the wasm, `arena-mesh.ts` (our walls for it), `input.ts` (controller, keyboard) by `bindings.ts` (`rlr:controls`) |
-| `src/play/*` | Playing on the physics: `session.ts` (a try: run-up, hand-over, judging the play's goal, the tally; no React), `rewind.ts` (a replay's moment as the physics' state), `play.tsx` (the page, its options in `rlr:play-options`; Still is the default start), `controls-sheet.tsx` |
+| `src/play/*` | Playing on the physics: `session.ts` (a try: run-up, hand-over, judging the play's goal, the tally; no React), `rewind.ts` (a replay's moment as the physics' state), `play.tsx` (the page, its options in `rlr:play-options`; "Parado" (still) is the default start), `controls-sheet.tsx` |
 | `physics/` | `build.sh` builds RocketSim and `rlr_sim.cpp` (its C interface) into `src/physics/rocketsim.{mjs,wasm}` |
 | `tools/models.mjs` | `pnpm models`: builds `public/models` from the sources |
 
@@ -73,7 +76,7 @@ the game's. Read `README.md` for what it does and the credits.
   4 s (small) or 10 s (big).
 - **Camera settings** (fov horizontal in degrees, height/distance in uu, angle,
   stiffness, swivel) and each player's ball cam toggles come from the replay;
-  "Their ball cam" replays what the player saw.
+  "Como jogou" replays what the player saw.
 - **subtr-actor's wasm** is loaded by explicit URL (`?url` import) and the package
   is excluded from Vite's dependency pre-bundling; don't undo either.
 - **subtr-actor is vendored** (`vendor/subtr-actor`, see its VENDORED.md): 1.4.0 rebuilt with a boxcars fix for
@@ -175,7 +178,7 @@ the game's. Read `README.md` for what it does and the credits.
   repository) captures 1:1 from the full-screen browser; keep the two in step.
   Recording switches OBS's profile and scene collection to "Shorts" and back
   (`intoProfile`/`backToLive` in `studio.tsx`), refusing while it streams.
-- Commented videos: the normal studio's "Record a video" does the same with the
+- Commented videos: the normal studio's "Gravar um vídeo" does the same with the
   "Vídeo" profile (`obs_video.py`, 1920×1080: the whole screen, his camera at
   the bottom left as on the lives). In full screen the controls fade unless the
   pointer is in the bottom 30% of the screen (`useControlsWanted`), so turning

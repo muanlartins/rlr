@@ -29,7 +29,7 @@ export interface Play {
   from: number
   to: number
   kind: "goal" | "assist" | "save" | "reset" | "bar"
-  /** "Goal · 113 km/h · aerial", for the list. */
+  /** "Gol · 113 km/h · aéreo", for the list. */
   label: string
   points: number
   /** The lines that added points, as said. */
@@ -92,27 +92,27 @@ export function findPlays(date: string, candidates: { session: Session; events: 
     for (const goal of goals) {
       const kmh = goal.kmh ?? 0
       if (goal.by === "me") {
-        const tags = ["Goal"]
+        const tags = ["Gol"]
         let points = 10 + kmh / 10 + (kmh >= 100 ? 3 : 0)
-        if (mine("AerialGoal", goal.t, 1.5)) (points += 6), tags.push("aerial")
-        if (mine("LongGoal", goal.t, 1.5)) (points += 5), tags.push("long")
-        if (mine("BicycleHit", goal.t, 5)) (points += 8), tags.push("bicycle")
+        if (mine("AerialGoal", goal.t, 1.5)) (points += 6), tags.push("aéreo")
+        if (mine("LongGoal", goal.t, 1.5)) (points += 5), tags.push("de longe")
+        if (mine("BicycleHit", goal.t, 5)) (points += 8), tags.push("bicicleta")
         if (mine("FlipReset", goal.t, 5)) (points += 10), tags.push("flip reset")
-        if (mine("OvertimeGoal", goal.t, 1.5)) (points += 6), tags.push("overtime")
+        if (mine("OvertimeGoal", goal.t, 1.5)) (points += 6), tags.push("prorrogação")
         add(goal, "goal", points, tags, 9, 2.5)
       } else if (mine("Assist", goal.t, 1.5)) {
-        add(goal, "assist", 6 + kmh / 20, ["Assist"], 9, 2.5)
+        add(goal, "assist", 6 + kmh / 20, ["Assistência"], 9, 2.5)
       }
     }
     for (const entry of log.log) {
       if (entry.type === "stat" && entry.by === "me" && (entry.name === "EpicSave" || entry.name === "Save")) {
         // An epic save is also logged as a save.
         if ([...taken].some((t) => Math.abs(t - entry.t) < 1)) continue
-        add(entry, "save", entry.name === "EpicSave" ? 8 : 3, [entry.name === "EpicSave" ? "Epic save" : "Save"], 6, 2.5)
+        add(entry, "save", entry.name === "EpicSave" ? 8 : 3, [entry.name === "EpicSave" ? "Defesa épica" : "Defesa"], 6, 2.5)
       } else if (entry.type === "stat" && entry.by === "me" && entry.name === "FlipReset" && !goals.some((goal) => goal.by === "me" && goal.t - entry.t >= 0 && goal.t - entry.t <= 5)) {
         add(entry, "reset", 6, ["Flip reset"], 6, 3)
       } else if (entry.type === "crossbar" && entry.last === "me" && (entry.kmh ?? 0) >= 90 && ![...taken].some((t) => Math.abs(t - entry.t) < 3)) {
-        add(entry, "bar", 2, ["Off the bar"], 6, 2)
+        add(entry, "bar", 2, ["No travessão"], 6, 2)
       }
     }
   })

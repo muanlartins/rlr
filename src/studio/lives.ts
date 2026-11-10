@@ -144,7 +144,7 @@ export async function remembered(): Promise<DirectoryHandle | undefined> {
 /** Reads the remembered folder; the browser asks again for permission when a visit starts (needs a click). */
 export async function reopen(dir: DirectoryHandle): Promise<Live[]> {
   if ((await dir.queryPermission({ mode: "read" })) !== "granted" && (await dir.requestPermission({ mode: "read" })) !== "granted") {
-    throw new Error("Reading the folder wasn't allowed.")
+    throw new Error("A leitura da pasta não foi permitida.")
   }
   return read(dir)
 }

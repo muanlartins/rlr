@@ -27,7 +27,7 @@ export function Scoreboard({ replay, playback, followed, onFollow }: { replay: R
                 <button
                   onClick={() => onFollow?.(index)}
                   disabled={!onFollow}
-                  title={onFollow ? `See from ${car.name}'s car (${index + 1})` : undefined}
+                  title={onFollow ? `Ver do carro de ${car.name} (${index + 1})` : undefined}
                   className={`pointer-events-auto block w-44 rounded-md px-2 py-1 text-[12px] backdrop-blur transition-colors ${team ? "text-right" : "text-left"} ${
                     lit ? "bg-[#f4f5f7]/95 text-[#002fa7]" : "bg-[#0b1430]/70 text-white enabled:hover:bg-[#0b1430]/95"
                   }`}

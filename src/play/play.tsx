@@ -123,7 +123,7 @@ export function PlayPage({ from, onClose }: { from?: From; onClose: () => void }
   const before = from ? scoreAt(from.replay, from.time) : [0, 0]
   const target = session?.target
   const status = from && statusOf(hud)
-  const tally = target && hud.tries > 0 ? `${session?.defending ? "Saved" : "Scored"} ${hud.wins} of ${hud.tries}` : undefined
+  const tally = target && hud.tries > 0 ? `${session?.defending ? "Defendeu" : "Marcou"} ${hud.wins} de ${hud.tries}` : undefined
 
   return (
     <div ref={stage} className="relative h-screen w-screen overflow-hidden bg-[#050a1a] text-white">
@@ -131,12 +131,12 @@ export function PlayPage({ from, onClose }: { from?: From; onClose: () => void }
 
       <div data-ui className="absolute left-4 top-4 flex items-center gap-2">
         <button onClick={onClose} className="rounded-full border border-white/10 bg-[#0b1430]/85 px-3.5 py-1.5 text-[12px] text-white/80 backdrop-blur hover:bg-white/10">
-          ← {from ? "Back to the replay" : "Home"}
+          ← {from ? "Voltar ao replay" : "Início"}
         </button>
         {me && (
           <span className="flex items-center gap-2 rounded-full bg-[#0b1430]/85 px-3 py-1.5 text-[12px] text-white/70 backdrop-blur">
             <span className="h-2 w-2 rounded-full" style={{ background: TEAMS[me.team].color }} />
-            {target ? `${session?.defending ? "Saving" : "Scoring"} ${target.scorer ? `${target.scorer}'s` : "the"} goal as ${me.name}` : `Playing as ${me.name}`}
+            {target ? `${session?.defending ? "Defendendo" : "Marcando de novo"} o gol${target.scorer ? ` de ${target.scorer}` : ""} como ${me.name}` : `Jogando como ${me.name}`}
           </span>
         )}
       </div>
@@ -163,7 +163,7 @@ export function PlayPage({ from, onClose }: { from?: From; onClose: () => void }
       </div>
 
       <div data-ui className="absolute inset-x-0 bottom-4 mx-auto flex w-fit max-w-[calc(100%-2rem)] flex-wrap items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#0b1430]/85 p-1.5 text-[12px] backdrop-blur">
-        <Options label="Speed">
+        <Options label="Velocidade">
           {SPEEDS.map((speed) => (
             <Option key={speed} active={options.speed === speed} onClick={() => change({ speed })}>
               {speed * 100}%
@@ -172,35 +172,35 @@ export function PlayPage({ from, onClose }: { from?: From; onClose: () => void }
         </Options>
         {from && (
           <>
-            <Options label="Start">
-              <Option active={!options.runUp} onClick={() => change({ runUp: false })} hint="The moment waits, still, for your first input">
-                Still
+            <Options label="Início">
+              <Option active={!options.runUp} onClick={() => change({ runUp: false })} hint="O momento espera, parado, o seu primeiro comando">
+                Parado
               </Option>
-              <Option active={options.runUp} onClick={() => change({ runUp: true })} hint="The replay runs 2 s up to the moment, then hands you the car">
-                Run-up
+              <Option active={options.runUp} onClick={() => change({ runUp: true })} hint="O replay roda 2 s até o momento e então passa o carro para você">
+                Embalo
               </Option>
             </Options>
-            <Option active={options.ghost} onClick={() => change({ ghost: !options.ghost })} hint="Your car as it went in the match, see-through">
-              Ghost
+            <Option active={options.ghost} onClick={() => change({ ghost: !options.ghost })} hint="O seu carro como foi na partida, transparente">
+              Fantasma
             </Option>
           </>
         )}
-        <Option active={unlimited} onClick={() => setUnlimited(!unlimited)} hint="Unlimited boost, as in free play">
+        <Option active={unlimited} onClick={() => setUnlimited(!unlimited)} hint="Boost infinito, como no free play">
           ∞ Boost
         </Option>
-        <button onClick={() => setControls(true)} className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-white/75 hover:bg-white/10 hover:text-white" title="Your controller's and keyboard's buttons">
+        <button onClick={() => setControls(true)} className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-white/75 hover:bg-white/10 hover:text-white" title="Os botões do controle e do teclado">
           <PadIcon />
-          Controls
+          Controles
         </button>
       </div>
 
       <span className="pointer-events-none absolute bottom-6 left-4 max-w-[22%] text-[12px] text-white/45">
-        {error ?? (!sim ? "Loading the physics…" : input && hint(input, hud.device, Boolean(from)))}
+        {error ?? (!sim ? "Carregando a física…" : input && hint(input, hud.device, Boolean(from)))}
       </span>
 
       <div className="pointer-events-none absolute bottom-4 right-4 flex flex-col items-center gap-1">
         <BoostGauge boost={hud.boost} color={TEAMS[me?.team ?? 0].color} speed={hud.speed} />
-        <span className="text-[12px] text-white/50">{hud.ballCam ? "Ball cam" : "Car cam"}</span>
+        <span className="text-[12px] text-white/50">{hud.ballCam ? "Ball cam" : "Câmera normal"}</span>
       </div>
 
       {controls && input && <ControlsSheet input={input} onClose={() => setControls(false)} />}
@@ -212,13 +212,13 @@ export function PlayPage({ from, onClose }: { from?: From; onClose: () => void }
 function statusOf(hud: Hud) {
   switch (hud.phase) {
     case "ready":
-      return "Move to start"
+      return "Mexa-se para começar"
     case "runup":
-      return `Your car in ${hud.handOverIn.toFixed(1)} s`
+      return `Seu carro em ${hud.handOverIn.toFixed(1)} s`
     case "replay":
-      return `As it happened: touch the ball to change it · ${since(hud.since)}`
+      return `Como aconteceu: toque na bola para mudar · ${since(hud.since)}`
     case "yours":
-      return `Your play · ${since(hud.since)}`
+      return `Sua jogada · ${since(hud.since)}`
     default:
       return undefined
   }
@@ -228,7 +228,7 @@ const since = (seconds: number) => `+${Math.max(0, seconds).toFixed(1)} s`
 
 /** The keys that matter most, in the bound ones. */
 function hint(input: Input, device: "pad" | "keys", replay: boolean) {
-  const again = replay ? "tries again" : "resets"
+  const again = replay ? "tenta de novo" : "recomeça"
   return device === "pad"
     ? `${input.name("pad", "reset")} ${again} · ${input.name("pad", "ballCam")} ball cam`
     : `${input.name("keys", "reset")} ${again} · ${input.name("keys", "ballCam")} ball cam`

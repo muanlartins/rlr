@@ -153,7 +153,7 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
         <button onClick={onClose} className="rounded-lg border border-white/10 bg-[#0b1430]/85 px-3 py-1.5 text-[12px] text-white/80 backdrop-blur hover:bg-white/10">
           ← {back}
         </button>
-        <span className="text-[13px] text-white/50">Drag to move · arrows move along one way (G) · rings turn a car (R) · click a pad to take it · 1, 2… to see from a car</span>
+        <span className="text-[13px] text-white/50">Arraste para mover · as setas movem numa direção (G) · os anéis giram o carro (R) · clique num boost para pegá-lo · 1, 2… para ver de um carro</span>
       </div>
 
       {car && (
@@ -182,44 +182,44 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
           <div className="flex items-center gap-3">
             <BoostGauge boost={car.boost} color={TEAMS[car.team].color} size={84} onStart={checkpoint} onChange={(boost) => update({ boost })} />
             <dl className="grid flex-1 grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-white/60">
-              <dt>Height</dt>
+              <dt>Altura</dt>
               <dd className="text-right font-mono tabular-nums text-white/85">{(car.pos[1] - REST.car).toFixed(1)} m</dd>
-              <dt>Heading</dt>
+              <dt>Direção</dt>
               <dd className="text-right font-mono tabular-nums text-white/85">{Math.round(angle(car.rot[0]))}°</dd>
-              <dt>Nose</dt>
+              <dt>Bico</dt>
               <dd className="text-right font-mono tabular-nums text-white/85">{Math.round(angle(car.rot[1]))}°</dd>
-              <dt>Roll</dt>
+              <dt>Rolamento</dt>
               <dd className="text-right font-mono tabular-nums text-white/85">{Math.round(angle(car.rot[2]))}°</dd>
             </dl>
           </div>
           <Row>
-            <Choice active={handles === "move"} onClick={() => setHandles("move")}>Move · G</Choice>
-            <Choice active={handles === "turn"} onClick={() => setHandles("turn")}>Turn · R</Choice>
+            <Choice active={handles === "move"} onClick={() => setHandles("move")}>Mover · G</Choice>
+            <Choice active={handles === "turn"} onClick={() => setHandles("turn")}>Girar · R</Choice>
           </Row>
           <Row>
-            <Choice active={false} onClick={() => update({ pos: [car.pos[0], REST.car, car.pos[2]], rot: [car.rot[0], 0, 0] })}>On its wheels</Choice>
-            <Choice active={false} onClick={remove}>Remove</Choice>
+            <Choice active={false} onClick={() => update({ pos: [car.pos[0], REST.car, car.pos[2]], rot: [car.rot[0], 0, 0] })}>Sobre as rodas</Choice>
+            <Choice active={false} onClick={remove}>Remover</Choice>
           </Row>
         </Panel>
       )}
       {selected === "ball" && (
         <Panel>
-          <span className="text-[13px]">Ball · drag the arrows, green is up</span>
+          <span className="text-[13px]">Bola · arraste as setas, a verde é para cima</span>
           <p className="flex justify-between text-white/60">
-            Height
+            Altura
             <span className="font-mono tabular-nums text-white/85">{(board.ball[1] - REST.ball).toFixed(1)} m</span>
           </p>
           <Row>
-            <Choice active={false} onClick={() => edit({ ...board, ball: [board.ball[0], REST.ball, board.ball[2]] }, true)}>On the floor</Choice>
-            <Choice active={false} onClick={() => edit({ ...board, ball: [0, REST.ball, 0] }, true)}>Centre</Choice>
+            <Choice active={false} onClick={() => edit({ ...board, ball: [board.ball[0], REST.ball, board.ball[2]] }, true)}>No chão</Choice>
+            <Choice active={false} onClick={() => edit({ ...board, ball: [0, REST.ball, 0] }, true)}>No centro</Choice>
           </Row>
         </Panel>
       )}
 
       <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center gap-2 p-4 text-[12px]">
         <Group>
-          <Choice active={!followed && !overhead} onClick={() => setView("free")}>Free</Choice>
-          <Choice active={overhead} onClick={() => setView("overhead")}>Overhead</Choice>
+          <Choice active={!followed && !overhead} onClick={() => setView("free")}>Livre</Choice>
+          <Choice active={overhead} onClick={() => setView("overhead")}>De cima</Choice>
           {board.cars.map((car) => (
             <Choice key={car.id} active={followed === car} onClick={() => setView({ car: car.id })}>
               <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ background: TEAMS[car.team].color }} />
@@ -230,7 +230,7 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
         {followed && (
           <Group>
             <Choice active={ballCam} onClick={() => setBallCam(true)}>Ball cam</Choice>
-            <Choice active={!ballCam} onClick={() => setBallCam(false)}>Car cam</Choice>
+            <Choice active={!ballCam} onClick={() => setBallCam(false)}>Câmera normal</Choice>
           </Group>
         )}
         <Group>
@@ -245,13 +245,13 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
           {([1, 2, 3] as const).map((size) => (
             <Choice key={size} active={false} onClick={() => reset(kickoff(size))}>{`${size}v${size}`}</Choice>
           ))}
-          <Choice active={false} onClick={() => reset({ ...EMPTY, marks: board.marks })}>Empty</Choice>
-          <Choice active={false} onClick={() => edit({ ...board, taken: board.taken.map(() => false) }, true)}>All pads up</Choice>
+          <Choice active={false} onClick={() => reset({ ...EMPTY, marks: board.marks })}>Vazio</Choice>
+          <Choice active={false} onClick={() => edit({ ...board, taken: board.taken.map(() => false) }, true)}>Todos os boosts de volta</Choice>
         </Group>
         <Group>
           {(["pen", "arrow", "circle"] as const).map((name) => (
             <Choice key={name} active={tool === name} onClick={() => setTool(tool === name ? undefined : name)}>
-              {name === "pen" ? "Pen" : name === "arrow" ? "Arrow" : "Circle"}
+              {name === "pen" ? "Caneta" : name === "arrow" ? "Seta" : "Círculo"}
             </Choice>
           ))}
           {INKS.map((color) => (
@@ -260,10 +260,10 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
               onClick={() => setInk(color)}
               className="mx-1 h-4 w-4 rounded-full border-2"
               style={{ background: color, borderColor: color === ink ? "#fff" : "transparent" }}
-              aria-label={`Ink ${color}`}
+              aria-label={`Cor ${color}`}
             />
           ))}
-          <Choice active={false} onClick={() => edit({ ...board, marks: [] }, true)}>Clear</Choice>
+          <Choice active={false} onClick={() => edit({ ...board, marks: [] }, true)}>Apagar</Choice>
         </Group>
         <Group>
           <Choice
@@ -275,7 +275,7 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
               })
             }
           >
-            Undo
+            Desfazer
           </Choice>
           <Choice
             active={copied}
@@ -285,7 +285,7 @@ export function BoardPage({ initial, back, onClose }: { initial: Board; back: st
               setTimeout(() => setCopied(false), 1500)
             }}
           >
-            {copied ? "Copied" : "Copy link"}
+            {copied ? "Copiado" : "Copiar link"}
           </Choice>
         </Group>
       </div>

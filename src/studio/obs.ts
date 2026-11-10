@@ -52,9 +52,9 @@ export class Obs {
     const socket = new WebSocket(url)
     this.socket = socket
     await new Promise<void>((resolve, reject) => {
-      socket.onerror = () => reject(new Error(`OBS isn't answering at ${url}. Is the WebSocket server on (Tools → WebSocket Server Settings)?`))
+      socket.onerror = () => reject(new Error(`O OBS não está respondendo em ${url}. O servidor WebSocket está ligado (Ferramentas → Configurações do servidor WebSocket)?`))
       socket.onclose = (event) => {
-        reject(new Error(event.code === 4009 ? "OBS refused the password." : "OBS closed the connection."))
+        reject(new Error(event.code === 4009 ? "O OBS recusou a senha." : "O OBS fechou a conexão."))
         this.onClose?.()
       }
       socket.onmessage = async (message) => {
@@ -71,7 +71,7 @@ export class Obs {
           const waiting = this.waiting.get(d.requestId)
           this.waiting.delete(d.requestId)
           if (d.requestStatus.result) waiting?.resolve(d.responseData ?? {})
-          else waiting?.reject(new Error(d.requestStatus.comment ?? `OBS couldn't ${d.requestType}`))
+          else waiting?.reject(new Error(d.requestStatus.comment ?? `O OBS não conseguiu ${d.requestType}`))
         }
       }
     })

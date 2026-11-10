@@ -43,11 +43,11 @@ export function PlayFromHere({ replay, followed, onPlay }: { replay: Replay; fol
     <div ref={box} className="relative">
       <button
         onClick={() => (followed === undefined ? setPicking(!picking) : onPlay(followed))}
-        title={car ? `Take ${car.name}'s car from here (J)` : "Take a player's car from here"}
+        title={car ? `Assumir o carro de ${car.name} daqui (J)` : "Assumir o carro de um jogador daqui"}
         className="flex h-9 items-center gap-2 rounded-full bg-[#f4f5f7] pl-3 pr-4 font-medium text-[#002fa7] shadow-[0_0_0_4px_rgba(133,167,255,0.18)] transition-transform hover:scale-[1.03]"
       >
         <PadIcon className="h-[18px] w-[18px]" />
-        Play from here
+        Jogar daqui
         {car && (
           <span className="flex items-center gap-1 text-[#002fa7]/60">
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: TEAMS[car.team].color }} />
@@ -57,7 +57,7 @@ export function PlayFromHere({ replay, followed, onPlay }: { replay: Replay; fol
       </button>
       {picking && (
         <div className="absolute bottom-full right-0 mb-2 w-56 rounded-xl border border-white/10 bg-[#0b1430]/95 p-1.5 shadow-xl backdrop-blur">
-          <p className="px-2 pb-1 pt-0.5 text-white/50">Play as</p>
+          <p className="px-2 pb-1 pt-0.5 text-white/50">Jogar como</p>
           {replay.cars.map((each, index) => (
             <button
               key={each.id}

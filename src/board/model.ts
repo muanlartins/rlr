@@ -59,7 +59,7 @@ export function newCar(board: Board, team: 0 | 1, x: number, z: number): Piece {
   const count = board.cars.filter((car) => car.team === team).length
   return {
     id: `${Date.now().toString(36)}-${next++}`,
-    name: `${team ? "Orange" : "Blue"} ${count + 1}`,
+    name: `${team ? "Laranja" : "Azul"} ${count + 1}`,
     team,
     body: "octane",
     pos,

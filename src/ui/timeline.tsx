@@ -47,7 +47,7 @@ export function Timeline({
       <button
         onClick={() => playback.set({ playing: !playing })}
         className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#f4f5f7] text-[#002fa7]"
-        aria-label={playing ? "Pause" : "Play"}
+        aria-label={playing ? "Pausar" : "Reproduzir"}
       >
         {playing ? <PauseIcon /> : <PlayIcon />}
       </button>
@@ -98,7 +98,7 @@ export function Timeline({
         {replay.demos.map((demo) => (
           <span
             key={demo.time}
-            title={`${demo.attacker} demolished ${demo.victim}`}
+            title={`${demo.attacker} demoliu ${demo.victim}`}
             className="absolute bottom-0 h-2 w-0.5 -translate-x-1/2 bg-white/50"
             style={{ left: at(demo.time) }}
           />
@@ -111,7 +111,7 @@ export function Timeline({
           value={time}
           onChange={(event) => playback.seek(Number(event.target.value))}
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-          aria-label="Playhead"
+          aria-label="Posição no replay"
         />
         <span className="pointer-events-none absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow" style={{ left: at(time) }} />
       </div>
@@ -169,11 +169,11 @@ function GoalMenu({ replay, goal, left, onWatch, onPlay, onClose }: { replay: Re
         <span className="ml-auto tabular-nums text-white/50">{goal.score.join("–")}</span>
       </div>
       <button onClick={onWatch} className="flex w-full items-center rounded-lg px-2 py-1.5 text-left text-white/85 hover:bg-white/10">
-        Watch it from {GOAL_LEAD} s before
+        Ver desde {GOAL_LEAD} s antes
       </button>
-      <p className="mt-1.5 border-t border-white/10 px-2 pb-0.5 pt-2 text-white/45">Save it as</p>
+      <p className="mt-1.5 border-t border-white/10 px-2 pb-0.5 pt-2 text-white/45">Defender como</p>
       {players(conceded)}
-      <p className="mt-1 px-2 pb-0.5 pt-1.5 text-white/45">Score it again as</p>
+      <p className="mt-1 px-2 pb-0.5 pt-1.5 text-white/45">Marcar de novo como</p>
       {players(goal.team)}
     </div>
   )

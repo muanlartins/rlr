@@ -16,7 +16,7 @@ export function Announcer({ replay, playback }: { replay: Replay; playback: Play
     return (
       <div className="pointer-events-none absolute inset-x-0 top-[22%] flex flex-col items-center gap-2 text-white">
         <span className="rounded-xl px-8 py-2 text-6xl font-bold tracking-tight shadow-2xl" style={{ background: TEAMS[goal.team].color }}>
-          Goal!
+          Gol!
         </span>
         <span className="rounded-full bg-[#0b1430]/85 px-4 py-1 text-[15px] backdrop-blur">
           {goal.scorer ?? TEAMS[goal.team].name} · {goal.score.join(" – ")}
@@ -28,7 +28,7 @@ export function Announcer({ replay, playback }: { replay: Replay; playback: Play
     const count = Math.ceil(kickoff.go - time)
     return (
       <div className="pointer-events-none absolute inset-x-0 top-[22%] text-center text-8xl font-bold tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,47,167,0.9)]">
-        {count > 0 ? count : <span className="text-[#85a7ff]">Go!</span>}
+        {count > 0 ? count : <span className="text-[#85a7ff]">Vai!</span>}
       </div>
     )
   }

@@ -27,7 +27,7 @@ export function LibraryButtons({ onLibrary }: { onLibrary: (library: Library) =>
     try {
       const library = await read()
       if (library.lives.length) onLibrary(library)
-      else setError(`No lives in ${library.name}: pick Videos\\Lives, or a day's folder in it.`)
+      else setError(`Nenhuma live em ${library.name}: escolha Videos\\Lives, ou a pasta de um dia dentro dela.`)
     } catch (caught) {
       // Closing the picker isn't an error.
       if (!(caught instanceof DOMException && caught.name === "AbortError")) setError(String(caught instanceof Error ? caught.message : caught))
@@ -42,16 +42,16 @@ export function LibraryButtons({ onLibrary }: { onLibrary: (library: Library) =>
       <div className="flex flex-wrap items-center justify-center gap-3">
         {kept && (
           <button disabled={reading} onClick={() => void run(async () => ({ name: kept.name, lives: await reopen(kept) }))} className={button}>
-            {reading ? "Reading…" : `Open ${kept.name}`}
+            {reading ? "Lendo…" : `Abrir ${kept.name}`}
           </button>
         )}
         {canKeep ? (
           <button disabled={reading} onClick={() => void run(pick)} className={button}>
-            {kept ? "Another lives folder…" : "Open a lives folder…"}
+            {kept ? "Outra pasta de lives…" : "Abrir uma pasta de lives…"}
           </button>
         ) : (
           <label className={`${button} cursor-pointer`}>
-            Open a lives folder…
+            Abrir uma pasta de lives…
             <input
               type="file"
               className="hidden"
@@ -70,7 +70,7 @@ export function LibraryButtons({ onLibrary }: { onLibrary: (library: Library) =>
   )
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
 const dayName = (date: string) => `${+date.slice(8, 10)} ${MONTHS[+date.slice(5, 7) - 1]} ${date.slice(0, 4)}`
 const won = (match: LiveMatch) => /^vit/i.test(match.result)
 
@@ -93,7 +93,7 @@ export function LibraryList({
       <div className="mb-4 flex items-baseline justify-between gap-4">
         <h2 className="text-xl font-medium">Lives</h2>
         <button onClick={onClose} className="text-[13px] text-white/50 hover:text-white">
-          Close {library.name}
+          Fechar {library.name}
         </button>
       </div>
       <div className="max-h-[60vh] space-y-5 overflow-y-auto pr-1">
@@ -101,7 +101,7 @@ export function LibraryList({
           <section key={live.date}>
             <h3 className="mb-2 text-[13px] uppercase tracking-[0.15em] text-white/50">
               {dayName(live.date)}
-              {!live.recordings.length && <span className="ml-2 normal-case tracking-normal text-[#ff9b9e]">no recording</span>}
+              {!live.recordings.length && <span className="ml-2 normal-case tracking-normal text-[#ff9b9e]">sem gravação</span>}
               <button onClick={() => onShorts(live)} className="ml-3 rounded-full border border-white/20 px-2.5 py-0.5 normal-case tracking-normal text-white/75 hover:bg-white/10">
                 Shorts
               </button>
@@ -115,7 +115,7 @@ export function LibraryList({
                     onClick={() => onOpen(live, match)}
                     className={`rounded-lg border px-3 py-2 text-left text-[13px] ${here ? "border-[#85a7ff] bg-white/10" : "border-white/10 bg-[#0b1430] hover:border-white/30"}`}
                   >
-                    <span className="block text-white/45">Match {match.number}</span>
+                    <span className="block text-white/45">Partida {match.number}</span>
                     <span className={won(match) ? "text-[#85a7ff]" : "text-white/85"}>{match.result}</span>
                   </button>
                 )
@@ -142,7 +142,7 @@ export function MatchPicker({ live, match, onOpen, onList }: { live: Live; match
         <span className={previous ? "" : "opacity-30"}>‹</span>
       </Choice>
       <span className="whitespace-nowrap px-2 py-1.5 text-white/85">
-        {dayName(live.date)} · Match {match.number} · <span className={won(match) ? "text-[#85a7ff]" : ""}>{match.result}</span>
+        {dayName(live.date)} · Partida {match.number} · <span className={won(match) ? "text-[#85a7ff]" : ""}>{match.result}</span>
       </span>
       <Choice active={false} onClick={() => next && onOpen(live, next)}>
         <span className={next ? "" : "opacity-30"}>›</span>
@@ -157,7 +157,7 @@ export async function playsOf(live: Live): Promise<Play[]> {
   return findPlays(live.date, candidates, transcript).filter((play) => live.matches.some((match) => match.number === play.number))
 }
 
-export const playName = (play: Play) => `Match ${play.number} · ${play.label}`
+export const playName = (play: Play) => `Partida ${play.number} · ${play.label}`
 
 /** A short's side of the screen: the day's plays, best first, and which one is on. */
 export function PlayList({ live, plays, play, onPlay, onLeave }: { live: Live; plays: Play[]; play: Play; onPlay: (play: Play) => void; onLeave: () => void }) {
@@ -176,7 +176,7 @@ export function PlayList({ live, plays, play, onPlay, onLeave }: { live: Live; p
             <span className={plays[at - 1] ? "" : "opacity-30"}>‹</span>
           </Choice>
           <span className="whitespace-nowrap px-2 py-1.5 text-[13px] text-white/85">
-            {at + 1} of {plays.length}
+            {at + 1} de {plays.length}
           </span>
           <Choice active={false} onClick={() => plays[at + 1] && onPlay(plays[at + 1])}>
             <span className={plays[at + 1] ? "" : "opacity-30"}>›</span>
@@ -193,7 +193,7 @@ export function PlayList({ live, plays, play, onPlay, onLeave }: { live: Live; p
           >
             <span className="w-5 text-white/40">{index + 1}</span>
             <span className="flex-1">
-              <span className="text-white/45">Match {each.number} · </span>
+              <span className="text-white/45">Partida {each.number} · </span>
               <span className={each.kind === "goal" ? "text-[#85a7ff]" : "text-white/85"}>{each.label}</span>
               {each.said.length > 0 && <span className="block truncate text-[12px] text-white/45">“{each.said.join(" ")}”</span>}
             </span>

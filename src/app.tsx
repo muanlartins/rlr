@@ -80,13 +80,13 @@ export function App() {
     if (match && !open) openMatch(live, match)
   }
   const shorts = (live: Live) => {
-    setFinding(`Finding the plays of ${live.date}…`)
+    setFinding(`Procurando as jogadas de ${live.date}…`)
     playsOf(live).then(
       (plays) => {
-        setFinding(plays.length ? undefined : `No plays of yours found in ${live.date}'s published session.`)
+        setFinding(plays.length ? undefined : `Nenhuma jogada sua na sessão publicada de ${live.date}.`)
         if (plays.length) openPlay(live, plays, plays[0])
       },
-      (error) => setFinding(`Couldn't read the session (${error})`),
+      (error) => setFinding(`Não deu para ler a sessão (${error})`),
     )
   }
 
@@ -127,7 +127,7 @@ export function App() {
       history.replaceState(null, "", `${location.pathname}${location.search}`)
       setBoard(undefined)
     }
-    return <BoardPage initial={board} back={state.status === "ready" ? "Replay" : "Home"} onClose={close} />
+    return <BoardPage initial={board} back={state.status === "ready" ? "Replay" : "Início"} onClose={close} />
   }
   if (state.status === "ready") {
     const openBoard = (time: number) => {
@@ -158,12 +158,12 @@ export function App() {
         </h1>
         <p className="mt-1 text-[13px] uppercase tracking-[0.2em] text-white/40">Rocket League Replay</p>
         <p className="mt-3 text-white/60">
-          {state.status === "loading" ? `Reading ${state.name}…` : state.status === "error" ? state.message : "Drop a Rocket League .replay file anywhere, or"}
+          {state.status === "loading" ? `Lendo ${state.name}…` : state.status === "error" ? state.message : "Solte um arquivo .replay do Rocket League em qualquer lugar, ou"}
         </p>
         {state.status !== "loading" && (
           <div className="mt-5 flex items-center justify-center gap-3">
             <label className="inline-block cursor-pointer rounded-full bg-[#f4f5f7] px-5 py-2 font-medium text-[#002fa7]">
-              Choose a replay
+              Escolher um replay
               <input
                 type="file"
                 accept=".replay"
@@ -178,7 +178,7 @@ export function App() {
               />
             </label>
             <button onClick={() => setBoard(savedBoard() ?? kickoff(2))} className="rounded-full border border-white/25 px-5 py-2 font-medium text-[#f4f5f7] hover:bg-white/10">
-              Open the board
+              Abrir a prancheta
             </button>
           </div>
         )}
@@ -199,7 +199,7 @@ export function App() {
           ))}
       </div>
       <footer className="absolute inset-x-0 bottom-6 text-center text-[12px] text-white/40">
-        Created by{" "}
+        Criado por{" "}
         <a href={HOME} className="text-white/70 underline decoration-white/25 underline-offset-4 hover:text-[#85a7ff]">
           muanlartins
         </a>
@@ -221,7 +221,7 @@ const isVideo = (file: File) => file.type.startsWith("video/") || /\.(mp4|mkv|mo
 /** The author's site, in the language of the domain RLR is served from (English elsewhere). */
 const HOME = location.hostname.endsWith(".com.br") ? "https://muanlartins.com.br" : "https://muanlartins.com"
 
-const CAMS = { theirs: "As they played", on: "Ball cam", off: "Car cam" } as const
+const CAMS = { theirs: "Como jogou", on: "Ball cam", off: "Câmera normal" } as const
 
 /**
  * Plays a replay; `at` starts it somewhere other than the beginning, and `onBoard` sets the moment out on the board.
@@ -442,19 +442,19 @@ function Player({
     playback.set({ playing: false })
     onPlay(playback.time, car)
   }
-  const tools = { pen: { icon: <PenIcon />, name: "Pen", key: "P" }, arrow: { icon: <ArrowIcon />, name: "Arrow", key: "A" }, circle: { icon: <CircleIcon />, name: "Circle", key: "C" } } as const
+  const tools = { pen: { icon: <PenIcon />, name: "Caneta", key: "P" }, arrow: { icon: <ArrowIcon />, name: "Seta", key: "A" }, circle: { icon: <CircleIcon />, name: "Círculo", key: "C" } } as const
   // Under the timeline: how to look (the players themselves are up top), what to draw, and what to do with the moment.
   const controls = (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px]">
       {picker}
       <Segment>
-        <ToolButton active={view.kind === "free"} onClick={() => setView({ kind: "free" })} hint="Free camera: drag to orbit, scroll to zoom (0)">
+        <ToolButton active={view.kind === "free"} onClick={() => setView({ kind: "free" })} hint="Câmera livre: arraste para girar, role para dar zoom (0)">
           <OrbitIcon />
-          Free
+          Livre
         </ToolButton>
-        <ToolButton active={view.kind === "overhead"} onClick={() => setView({ kind: "overhead" })} hint="Overhead (9)">
+        <ToolButton active={view.kind === "overhead"} onClick={() => setView({ kind: "overhead" })} hint="De cima (9)">
           <OverheadIcon />
-          Overhead
+          De cima
         </ToolButton>
       </Segment>
       {view.kind === "player" && (
@@ -481,11 +481,11 @@ function Player({
               onClick={() => setInk(color)}
               className="h-3.5 w-3.5 rounded-full ring-offset-2 ring-offset-[#0b1430] transition-shadow"
               style={{ background: color, boxShadow: color === ink ? `0 0 0 2px #0b1430, 0 0 0 3.5px ${color}` : undefined }}
-              aria-label={`Ink ${color}`}
+              aria-label={`Cor ${color}`}
             />
           ))}
         </span>
-        <ToolButton onClick={() => setStrokes([])} hint="Clear the drawing (X)">
+        <ToolButton onClick={() => setStrokes([])} hint="Apagar o desenho (X)">
           <ClearIcon />
         </ToolButton>
       </Segment>
@@ -495,19 +495,19 @@ function Player({
             playback.set({ playing: false })
             onBoard(playback.time)
           }}
-          hint="Open this moment on the tactics board"
+          hint="Abrir este momento na prancheta tática"
         >
           <BoardIcon />
-          Board
+          Prancheta
         </ToolButton>
         {!studio && (
-          <ToolButton onClick={() => openStudio(true)} hint="The studio: the stream's recording alongside">
+          <ToolButton onClick={() => openStudio(true)} hint="O estúdio: a gravação da live junto com o replay">
             <StudioIcon />
-            Studio
+            Estúdio
           </ToolButton>
         )}
         {studioOn && !short && !fullScreen && (
-          <ToolButton onClick={() => void document.documentElement.requestFullscreen()} hint="Full screen">
+          <ToolButton onClick={() => void document.documentElement.requestFullscreen()} hint="Tela cheia">
             <FullScreenIcon />
           </ToolButton>
         )}
@@ -528,7 +528,7 @@ function Player({
         <aside className="absolute bottom-0 right-0 top-0 flex flex-col gap-3 overflow-hidden p-5" style={{ left: STAGE[0] / dpr }}>
           {!fullScreen && (
             <button onClick={() => void document.documentElement.requestFullscreen()} className="rounded-lg bg-[#f4f5f7] px-3 py-2 text-[13px] font-medium text-[#002fa7]">
-              Full screen: OBS records the picture from the screen's top left corner
+              Tela cheia: o OBS grava a imagem a partir do canto superior esquerdo da tela
             </button>
           )}
           {short.list}
@@ -602,7 +602,7 @@ function useFullScreen() {
 function TheirCam({ car, replay, playback }: { car: Car; replay: Replay; playback: Playback }) {
   usePlayback(playback)
   const { frame } = momentAt(replay.times, playback.time)
-  return <span className="ml-1.5 opacity-60">{car.flags[frame] & BALL_CAM ? "ball cam" : "car cam"}</span>
+  return <span className="ml-1.5 opacity-60">{car.flags[frame] & BALL_CAM ? "ball cam" : "câmera normal"}</span>
 }
 
 /** The followed player's boost, as the game shows it, with their speed. */

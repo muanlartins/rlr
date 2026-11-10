@@ -34,9 +34,9 @@ export function useSync(replay: Replay, active: boolean): Lookup | undefined {
     sessionsNear(replay.date)
       .then((candidates) => {
         const sync = findMatch(replay, candidates)
-        if (!gone) setLookup({ replay, lookup: sync ? { status: "found", sync } : { status: "missing", reason: "No published session has this match" } })
+        if (!gone) setLookup({ replay, lookup: sync ? { status: "found", sync } : { status: "missing", reason: "Nenhuma sessão publicada tem esta partida" } })
       })
-      .catch((error) => !gone && setLookup({ replay, lookup: { status: "missing", reason: `Couldn't reach the sessions (${error})` } }))
+      .catch((error) => !gone && setLookup({ replay, lookup: { status: "missing", reason: `Não deu para acessar as sessões (${error})` } }))
     return () => void (gone = true)
   }, [replay, active])
   if (!active) return undefined
@@ -130,12 +130,12 @@ export function StudioVideo({ vod, sync, nudge, playback, screen, onSwap, volume
       />
       {lost && (
         <div className="absolute left-1/2 top-20 z-20 -translate-x-1/2 rounded-lg bg-[#e5484d] px-4 py-2 text-[13px] text-white shadow">
-          Couldn't read {vod.name}: was it moved or renamed? Add the recording again.
+          Não deu para ler {vod.name}: foi movido ou renomeado? Adicione a gravação de novo.
         </div>
       )}
       {main && held && (
         <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-[#0b1430]/85 px-3 py-1 text-[12px] text-white/70">
-          The game's goal replay: the 3D waits for the kickoff
+          O replay do gol no jogo: o 3D espera o kickoff
         </div>
       )}
     </>
@@ -240,7 +240,7 @@ export function StudioBar({
     <div className="flex flex-wrap items-center gap-2 text-[12px]">
       <Group>
         <label className="cursor-pointer whitespace-nowrap px-2.5 py-1.5 text-white/75 hover:bg-white/10" title={vod?.name}>
-          {vod ? "Recording ✓" : "Add the recording…"}
+          {vod ? "Gravação ✓" : "Adicionar a gravação…"}
           <input type="file" accept="video/*,.mkv" className="hidden" onChange={(event) => {
               const file = event.target.files?.[0]
               // Cleared, so choosing the same file again (after moving it) still counts.
@@ -250,27 +250,27 @@ export function StudioBar({
         </label>
         {vod && (
           <Choice active={false} onClick={() => onVolume(VOLUMES[(VOLUMES.indexOf(volume) + 1) % VOLUMES.length])}>
-            {volume === 1 ? "Sound: full" : volume ? "Sound: low" : "Sound: off"}
+            {volume === 1 ? "Som: alto" : volume ? "Som: baixo" : "Som: mudo"}
           </Choice>
         )}
         {vod && (
           <Choice active={screen === "vod"} onClick={onSwap}>
-            {screen === "vod" ? "Showing the recording · V" : "Showing the 3D · V"}
+            {screen === "vod" ? "Mostrando a gravação · V" : "Mostrando o 3D · V"}
           </Choice>
         )}
       </Group>
 
       {vod && (
         <Group>
-          <span className="whitespace-nowrap px-2.5 py-1.5 text-white/60" title={found ? `Off by ${sync.error.toFixed(2)} s on average at the goals` : undefined}>
+          <span className="whitespace-nowrap px-2.5 py-1.5 text-white/60" title={found ? `Erro médio de ${sync.error.toFixed(2)} s nos gols` : undefined}>
             {lookup?.status === "looking"
-              ? "Finding the match…"
+              ? "Procurando a partida…"
               : match
-                ? `Match ${sync.index! + 1} of ${sync.session!.id} · ${match.score.join("–")}`
-                : `${lookup?.status === "missing" ? lookup.reason : "No match"}: line it up by hand`}
+                ? `Partida ${sync.index! + 1} de ${sync.session!.id} · ${match.score.join("–")}`
+                : `${lookup?.status === "missing" ? lookup.reason : "Sem partida"}: alinhe à mão`}
           </span>
           {NUDGES.map((step) => (
-            <button key={step} onClick={() => onNudge(+(nudge + step).toFixed(2))} className="px-2 py-1.5 text-white/75 hover:bg-white/10" title="Move the recording against the replay">
+            <button key={step} onClick={() => onNudge(+(nudge + step).toFixed(2))} className="px-2 py-1.5 text-white/75 hover:bg-white/10" title="Adianta ou atrasa a gravação em relação ao replay">
               {step > 0 ? "+" : "−"}
               {Math.abs(step)}s
             </button>
@@ -281,10 +281,10 @@ export function StudioBar({
 
       <Group>
         <Choice active={false} onClick={() => keys.current.i()}>
-          In · I
+          Início · I
         </Choice>
         <Choice active={false} onClick={() => keys.current.o()}>
-          Out · O
+          Fim · O
         </Choice>
         {range && (
           <>
@@ -292,7 +292,7 @@ export function StudioBar({
               {clock(replay, range[0])}–{clock(replay, range[1])}
             </span>
             <Choice active={loop} onClick={() => onLoop(!loop)}>
-              Loop · L
+              Repetir · L
             </Choice>
             <Choice active={false} onClick={() => (onRange(undefined), onLoop(false))}>
               ×
@@ -303,15 +303,15 @@ export function StudioBar({
 
       <Group>
         <Choice active={false} onClick={mark}>
-          Mark · M{marks.list.length ? ` (${marks.list.length})` : ""}
+          Marcar · M{marks.list.length ? ` (${marks.list.length})` : ""}
         </Choice>
         {marks.list.length > 0 && (
           <>
             <Choice active={false} onClick={() => marks.save(replay)}>
-              Save marks
+              Salvar marcas
             </Choice>
-            <Choice active={false} onClick={() => confirm("Clear the marks of this replay?") && marks.clear()}>
-              Clear
+            <Choice active={false} onClick={() => confirm("Apagar as marcas deste replay?") && marks.clear()}>
+              Apagar
             </Choice>
           </>
         )}
@@ -321,7 +321,7 @@ export function StudioBar({
 
       <Group>
         <Choice active={false} onClick={onClose}>
-          Close the studio
+          Fechar o estúdio
         </Choice>
       </Group>
     </div>
@@ -393,7 +393,7 @@ const BACK = "rlr:obs:back"
 
 /** Into the profile and scenes for a short or a video. Never on air. */
 async function intoProfile(client: Obs, name: string) {
-  if ((await client.call("GetStreamStatus")).outputActive) throw new Error("OBS is live: record off air.")
+  if ((await client.call("GetStreamStatus")).outputActive) throw new Error("O OBS está ao vivo: grave fora da live.")
   const profile = String((await client.call("GetProfileList")).currentProfileName)
   const collection = String((await client.call("GetSceneCollectionList")).currentSceneCollectionName)
   if (profile === name && collection === name) return
@@ -437,7 +437,7 @@ function ObsControls({ obs, short }: { obs: ReturnType<typeof useObs>; short: bo
       <div className="relative">
         <Group>
           <Choice active={false} onClick={() => (settings.password ? void obs.connect(settings) : setAsking(true))}>
-            {obs.connecting ? "Connecting to OBS…" : "Connect OBS"}
+            {obs.connecting ? "Conectando ao OBS…" : "Conectar o OBS"}
           </Choice>
           <Choice active={asking} onClick={() => setAsking(!asking)}>
             ⚙
@@ -454,15 +454,15 @@ function ObsControls({ obs, short }: { obs: ReturnType<typeof useObs>; short: bo
           >
             {obs.error && <p className="text-[#ff8a8a]">{obs.error}</p>}
             <label className="block">
-              <span className="text-white/60">Address</span>
+              <span className="text-white/60">Endereço</span>
               <input value={settings.url} onChange={(event) => setSettings({ ...settings, url: event.target.value })} className="mt-1 w-full rounded bg-white/10 px-2 py-1" type="text" />
             </label>
             <label className="block">
-              <span className="text-white/60">Password (OBS → Tools → WebSocket Server Settings)</span>
+              <span className="text-white/60">Senha (OBS → Ferramentas → Configurações do servidor WebSocket)</span>
               <input value={settings.password} onChange={(event) => setSettings({ ...settings, password: event.target.value })} className="mt-1 w-full rounded bg-white/10 px-2 py-1" type="password" />
             </label>
-            <p className="text-white/40">Kept in this browser only.</p>
-            <button className="rounded-full bg-[#f4f5f7] px-3 py-1 font-medium text-[#002fa7]">Connect</button>
+            <p className="text-white/40">Guardada só neste navegador.</p>
+            <button className="rounded-full bg-[#f4f5f7] px-3 py-1 font-medium text-[#002fa7]">Conectar</button>
           </form>
         )}
       </div>
@@ -488,7 +488,7 @@ function ObsControls({ obs, short }: { obs: ReturnType<typeof useObs>; short: bo
       {problem && <span className="px-2.5 py-1.5 text-[#ff8a8a]">{problem}</span>}
       {switched && !recording && (
         <Choice active={false} onClick={() => void backToLive(client).then(() => setSwitched(false), (error) => setProblem(String(error.message ?? error)))}>
-          Back to the live's OBS
+          Voltar ao OBS da live
         </Choice>
       )}
       <button
@@ -496,7 +496,7 @@ function ObsControls({ obs, short }: { obs: ReturnType<typeof useObs>; short: bo
         className={`flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 ${recording ? "bg-[#e5484d] text-white" : "text-white/75 hover:bg-white/10"}`}
       >
         <span className={`h-2 w-2 rounded-full ${recording ? "animate-pulse bg-white" : "bg-[#e5484d]"}`} />
-        {recording ? `Recording ${elapsed}` : short ? "Record a short" : "Record a video"}
+        {recording ? `Gravando ${elapsed}` : short ? "Gravar um short" : "Gravar um vídeo"}
       </button>
     </Group>
   )

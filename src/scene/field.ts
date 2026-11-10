@@ -24,8 +24,8 @@ export const OUTLINE: [number, number][] = [
 ]
 
 export const TEAMS = [
-  { name: "Blue", color: "#2f6bff", deep: "#0a2a8a" },
-  { name: "Orange", color: "#ff8a1f", deep: "#8a3a00" },
+  { name: "Azul", color: "#2f6bff", deep: "#0a2a8a" },
+  { name: "Laranja", color: "#ff8a1f", deep: "#8a3a00" },
 ] as const
 
 /** The 34 boost pads, as [x, z] in metres and whether each is big, Blue's end first (as the game lays them out). */
