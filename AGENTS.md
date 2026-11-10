@@ -21,6 +21,12 @@ the game's. Read `README.md` for what it does and the credits.
   `./run.sh samples/<file>` (or `?replay=samples/<file>`) opens one directly.
 - Model sources are re-downloadable and ignored (`assets-src/`); the built models
   in `public/models` are committed. Credit any new model in the README.
+- Every new feature released here also goes on the channel's roadmap page,
+  muanlartins.com.br/canal/roadmap: an entry tagged `rlr` at the top of `SHIPPED`
+  in `content/changelog.ts` of the site's repository (`~/repos/muanlartins`),
+  with the credit of whoever suggested it. That repository's AGENTS.md, "The
+  roadmap and the changelog", has the rules; keep other players' names out of
+  its pictures (RLR's name tags and scoreboard show them).
 
 ## Layout
 
